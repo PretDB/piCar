@@ -31,7 +31,7 @@ if __name__ == "__main__":
     localIP = test.getsockname()[0]
     test.close()
     
-    id = 1
+    id = int(socket.gethostname())
     tracker = trackerThread()
     
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
