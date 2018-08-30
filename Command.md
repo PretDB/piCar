@@ -1,1 +1,1 @@
-/doc/Car/CarLower/Command.md
+../CarLower/Command.md
