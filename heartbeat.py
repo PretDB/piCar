@@ -2,11 +2,11 @@
 import socket
 import time
 import json
+import spidev
 
 
-# address = ('<broadcast>', 6868)
+# Network Initializations
 address = ('<broadcast>', 6868)
-
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 testS = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 testS.connect(('8.8.8.8', 80))
@@ -15,16 +15,58 @@ testS.close()
 s.bind(('', 9999))
 s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
+# Hardware Initializations
+spi = spidev.SpiDev()
+spi.open(0, 0)
+spi.max_speed_hz = 5000
+
+
 id = int(socket.gethostname())
 heartbeatPackage = {'FromIP':localIP,'FromID':id, 'FromRole':'car','Type':'heartbeat','Msg':None}
-    
 
-dataRaw = json.dumps(heartbeatPackage)
-a = 0
+
+heartbeatCount= 0
+c = 0
+
+def GetLoc():
+    raw = bytes(spi.readbytes(128))
+    start = raw.rindex(b'^')
+    end = raw.rindex(b'$')
+    if start < end:
+        m = bytes(raw[start : end])
+        msg = m.decode(encoding='ascii')
+
+        tagIndex = msg.index('T')
+        tag = msg[tagIndex + 1]
+        if str(id) == str(tagIndex):
+            xIndex = msg.index('X')
+            yIndex = msg.index('Y')
+            xString = msg[xIndex + 1 : yIndex]
+            yString = msg[yIndex : ]
+            xVal = float(xString)
+            yVal = float(yString)
+            loc = {'tag' : tag, 'X' : xVal, 'y' : yVal}
+            return loc
+        else:
+            return None
+    else:
+        return None
+
 while True:
-    a = a + 1
+    heartbeatCount= heartbeatCount + 1
+
+    # Get location data
+    loc = GetLoc()
+    if loc != None:
+        heartbeatPackage['Msg'] = {'position' : loc}
+    else:
+        heartbeatPackage['Msg'] = None
+
+    dataRaw = json.dumps(heartbeatPackage)
     dataByte = dataRaw.encode('utf-8')
+
     s.sendto(dataByte, address)
-    print(a, dataByte)
-    time.sleep(5)
+    print(heartbeatCount, dataByte)
+
+    time.sleep(0.2)
 
