@@ -26,5 +26,5 @@ while True:
     dataByte = dataRaw.encode('utf-8')
     s.sendto(dataByte, address)
     print(a, dataByte)
-    time.sleep(5)
+    time.sleep(2)
 
