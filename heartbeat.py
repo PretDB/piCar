@@ -38,18 +38,20 @@ def GetLoc():
 
         tagIndex = msg.index('T')
         tag = msg[tagIndex + 1]
-        if str(id) == str(tagIndex):
+        if str(id) == str(msg[tagIndex + 1]):
             xIndex = msg.index('X')
             yIndex = msg.index('Y')
             xString = msg[xIndex + 1 : yIndex]
-            yString = msg[yIndex : ]
+            yString = msg[yIndex + 1 : ]
             xVal = float(xString)
             yVal = float(yString)
             loc = {'tag' : tag, 'X' : xVal, 'y' : yVal}
             return loc
         else:
+            print('tag not right')
             return None
     else:
+        print('message string not valid')
         return None
 
 while True:
