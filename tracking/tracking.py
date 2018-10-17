@@ -13,8 +13,6 @@ def GetDir(img):
     erode_img = cv2.erode(thi, element)
     dilate_img = cv2.dilate(erode_img, element)
 
-    for i in range(5 * dilate_img.shape[1] / 16):
-        for j in range(dilate_img.shape[0] / 3):
-            if(thresho)
+    # ************** area 1 ******************
 
     return 0
