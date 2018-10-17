@@ -1,5 +1,5 @@
 
-def GetMoment(img):
+def GetMoment_for(img):
     x = 0
     y = 0
     count = 0
@@ -15,3 +15,4 @@ def GetMoment(img):
         x = x / count
         y = y / count
     return (x, y)
+
