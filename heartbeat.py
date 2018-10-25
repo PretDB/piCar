@@ -4,6 +4,8 @@ import socket
 import time
 import json
 import spidev
+import wiringpi
+import serial
 
 isDebug = len(sys.argv) > 1
 
@@ -32,6 +34,8 @@ spi = spidev.SpiDev()
 spi.open(0, 0)
 spi.max_speed_hz = 5000
 
+ser = serial.Serial('/dev/ttyUSB0', 115200)
+
 
 id = int(socket.gethostname())
 heartbeatPackage = {'FromIP':localIP,'FromID':id, 'FromRole':'car','Type':'heartbeat','Msg':None}
@@ -39,6 +43,9 @@ heartbeatPackage = {'FromIP':localIP,'FromID':id, 'FromRole':'car','Type':'heart
 
 heartbeatCount= 0
 c = 0
+
+usb = wiringpi.serialOpen('/dev/ttyUSB0', 115200);
+
 
 def GetLoc():
     global lastLoc
@@ -50,7 +57,8 @@ def GetLoc():
     t = 0
     if not isDebug:
         try:
-            raw = bytes(spi.readbytes(128))
+            # raw = bytes(spi.readbytes(128))
+            raw = ser.readline()
             start = raw.rindex(b'^')
             end = raw.rindex(b'$')
             if start < end:
