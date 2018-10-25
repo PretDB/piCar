@@ -1,5 +1,11 @@
+import cv2
+def getCenter(img):
+    mo = cv2.moments(img, True)
+    if int(mo['m00']) == 0:
+        mo['m00'] = 1
+    return ((int)(mo['m10'] / mo['m00']), int(mo['m01']) / int(mo['m00']))
 
-def GetMoment_for(img):
+def getCenter_for(img):
     x = 0
     y = 0
     count = 0

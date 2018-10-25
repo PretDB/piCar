@@ -25,12 +25,17 @@ cam = cv2.VideoCapture(0)
 
 
 while True:
+    # Read a frame from camera
     f = cam.read()[1]
+    # Down sampling
     f = cv2.pyrDown(f, (f.shape[1] / 2, f.shape[0] / 2))
     f = cv2.pyrDown(f, (f.shape[1] / 2, f.shape[0] / 2))
+    # Pre-process of the image
     binImg = preprocess(f)
-    ele = cv2.getStructureingElement(cv2.MORPH_RECT, (25, 25))
+    # Get element
+    ele = cv2.getStructuringElement(cv2.MORPH_RECT, (25, 25))
+    # Erode and delate
     erd = cv2.erode(binImg, ele)
-    dil = cv2.delate(erd, ele)
+    dil = cv2.dilate(erd, ele)
 
     # ************** area 1 ******************
