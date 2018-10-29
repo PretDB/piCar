@@ -15,9 +15,18 @@ lastLoc = (0, 0)
 
 if isDebug:
     import random
+
+
+    id = 0
 else:
+    spi = spidev.SpiDev()
+    spi.open(0, 0)
+    spi.max_speed_hz = 5000
+
     fieldX = 6
     fieldY = 4
+
+    id = int(socket.gethostname())
 
 # Network Initializations
 address = ('<broadcast>', 6868)
@@ -30,14 +39,10 @@ s.bind(('', 9999))
 s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
 # Hardware Initializations
-spi = spidev.SpiDev()
-spi.open(0, 0)
-spi.max_speed_hz = 5000
 
-ser = serial.Serial('/dev/ttyUSB0', 115200)
+ser = serial.Serial('/dev/ttyUSB1', 115200)
 
 
-id = int(socket.gethostname())
 heartbeatPackage = {'FromIP':localIP,'FromID':id, 'FromRole':'car','Type':'heartbeat','Msg':None}
 
 
@@ -64,7 +69,7 @@ def GetLoc():
             if start < end:
                 m = bytes(raw[start : end])
                 msg = m.decode(encoding='ascii')
-    
+
                 tagIndex = msg.index('T')
                 tag = msg[tagIndex + 1]
                 if str(id) == str(msg[tagIndex + 1]):
