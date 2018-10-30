@@ -1,6 +1,4 @@
 import wiringpi
 
 
-fd = wiringpi.wiringPiI2CSetup(0x1e)
-
-
+fd = wiringpi.wiringPiI2CSetup(0x0d)
