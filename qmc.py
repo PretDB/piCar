@@ -18,7 +18,7 @@ class QMC:
         return raw
 
     def readMag_Raw( self ):
-        dataRaw = (0, 0, 0, 0, 0, 0)
+        dataRaw = [0, 0, 0, 0, 0, 0]
         ready_raw = self.readReg( 0x06 )
 
         if ready_raw & 0x01 == 0x01:
