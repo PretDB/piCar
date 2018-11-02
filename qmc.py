@@ -104,9 +104,9 @@ class QMC:
         xmin = min( x )
         ymin = min( y )
         zmin = min( z )
-        xoff = - ( ( xmax - xmin ) / 2 )
-        yoff = - ( ( ymax - ymin ) / 2 )
-        zoff = - ( ( zmax - zmin ) / 2 )
+        xoff = - ( ( xmax + xmin ) / 2 )
+        yoff = - ( ( ymax + ymin ) / 2 )
+        zoff = - ( ( zmax + zmin ) / 2 )
 
         xgain = 1
         ygain = ( xmax - xmin ) / ( ymax - ymin )
