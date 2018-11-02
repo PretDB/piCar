@@ -48,8 +48,8 @@ class QMC:
         tmp[3] = ctypes.c_byte( dataRaw[3] )
         tmp[5] = ctypes.c_byte( dataRaw[5] )
 
-        data[0] = tmp[1].value << 8 | tmp[0]
-        data[1] = tmp[3].value << 8 | tmp[2]
-        data[2] = tmp[5].value << 8 | tmp[4]
+        data[0] = tmp[1].value << 8 | tmp[0].value
+        data[1] = tmp[3].value << 8 | tmp[2].value
+        data[2] = tmp[5].value << 8 | tmp[4].value
 
         return data
