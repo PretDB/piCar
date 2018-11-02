@@ -1,6 +1,7 @@
 import wiringpi
 import time
 import ctypes
+import math
 
 
 class QMC:
@@ -53,3 +54,8 @@ class QMC:
         data[2] = tmp[5].value << 8 | tmp[4].value
 
         return data
+
+    def readAngle( self ):
+        xyz = self.readMag()
+        angle = math.atan2(xyz[1], xyz[0]) * 180 / math.pi + 180
+        return angle
