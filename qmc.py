@@ -35,3 +35,21 @@ class QMC:
                 dataRaw[i] = self.readReg( i )
 
         return dataRaw
+
+    def readMag( self ):
+        dataRaw = self.readMag_Raw()
+        tmp = [0, 0, 0, 0, 0, 0]
+        data = [ 0, 0, 0]
+
+        tmp[0] = ctypes.c_ubyte( dataRaw[0] )
+        tmp[2] = ctypes.c_ubyte( dataRaw[2] )
+        tmp[4] = ctypes.c_ubyte( dataRaw[4] )
+        tmp[1] = ctypes.c_byte( dataRaw[1] )
+        tmp[3] = ctypes.c_byte( dataRaw[3] )
+        tmp[5] = ctypes.c_byte( dataRaw[5] )
+
+        data[0] = tmp[1] << 8 | tmp[0]
+        data[1] = tmp[3] << 8 | tmp[2]
+        data[2] = tmp[5] << 8 | tmp[4]
+
+        return data
