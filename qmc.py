@@ -1,4 +1,5 @@
 import wiringpi
+import time
 import ctypes
 
 
@@ -7,6 +8,14 @@ class QMC:
         self.address = 0x0d
         self.handler = wiringpi.wiringPiI2CSetup( self.address )
 
+        self.reset()
+
+    def reset( self ):
+        self.writeReg( 0x0A, 0x80 )
+        time.sleep( 0.1 )
+        self.set()
+
+    def set( self ):
         self.writeReg( 0x0B, 0x01 )
         self.writeReg( 0x09, 0x1D )
 
