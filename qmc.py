@@ -7,6 +7,9 @@ class QMC:
         self.address = 0x0d
         self.handler = wiringpi.wiringPiI2CSetup( self.address )
 
+        self.writeReg( 0x0B, 0x01 )
+        self.writeReg( 0x09, 0x1D )
+
     def writeReg( self, addr, val ):
         return wiringpi.wiringPiI2CWriteReg8( self.handler, addr, val )
 
