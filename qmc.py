@@ -3,7 +3,7 @@ import ctypes
 
 
 class QMC:
-    def __inti__(self):
+    def __init__(self):
         self.address = 0x0d
         self.handler = wiringpi.wiringPiI2CSetup( self.address )
 
