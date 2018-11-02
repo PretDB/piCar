@@ -18,12 +18,12 @@ class QMC:
         if readCali == True:
             try:
                 f = open('cali.conf', 'r')
-                self.xoff = int( f.readline() )
-                self.yoff = int( f.readline() )
-                self.zoff = int( f.readline() )
-                self.xgain = int( f.readline() )
-                self.ygain = int( f.readline() )
-                self.zgain = int( f.readline() )
+                self.xoff = float( f.readline() )
+                self.yoff = float( f.readline() )
+                self.zoff = float( f.readline() )
+                self.xgain = float( f.readline() )
+                self.ygain = float( f.readline() )
+                self.zgain = float( f.readline() )
             except FileNotFoundError:
                 f = open('cali.conf', 'w')
                 f.flush()
@@ -98,14 +98,35 @@ class QMC:
             z.append(zz)
             time.sleep(0.005)
 
-        xoff = - ( ( max( x ) - min( x ) ) / 2 )
-        yoff = - ( ( max( y ) - min( y ) ) / 2 )
-        zoff = - ( ( max( z ) - min( z ) ) / 2 )
+        xmax = max( x )
+        ymax = max( y )
+        zmax = max( z )
+        xmin = min( x )
+        ymin = min( y )
+        zmin = min( z )
+        xoff = - ( ( xmax - xmin ) / 2 )
+        yoff = - ( ( ymax - ymin ) / 2 )
+        zoff = - ( ( zmax - zmin ) / 2 )
+
+        xgain = 1
+        ygain = ( xmax - xmin ) / ( ymax - ymin )
+        zgain = ( xmax - xmin ) / ( zmax - zmin )
 
         if write == True:
-            f = open( 'cali.conf' )
-            f.write(str( xoff ) + '\n' )
-            f.write(str( yoff ) + '\n' )
+            f = open( 'cali.conf', 'w' )
+            f.write( str( xoff ) + '\n')
+            f.write( str( yoff ) + '\n')
+            f.write( str( zoff ) + '\n')
+            f.write( str( xgain ) + '\n' )
+            f.write( str( ygain ) + '\n' )
+            f.write( str( zgain ) + '\n' )
             f.close()
 
-        return xoff, yoff
+        self.xoff = xoff
+        self.yoff = yoff
+        self.zoff = zoff
+        self.xgain = xgain
+        self.ygain = ygain
+        self.zgain = zgain
+
+        return xoff, xgain, yoff, ygain, zoff, zgain
