@@ -59,3 +59,17 @@ class QMC:
         xyz = self.readMag()
         angle = math.atan2(xyz[1], xyz[0]) * 180 / math.pi + 180
         return angle
+
+    def cali( self ):
+        x = list()
+        y = list()
+
+        for i in range(2000):
+            xx, yy, zz = self.readMag()
+            x.append(xx)
+            y.append(yy)
+
+        xoff = - ( ( max( x ) - min( x ) ) / 2 )
+        yoff = - ( ( max( y ) - min( y ) ) / 2 )
+
+        return xoff, yoff
