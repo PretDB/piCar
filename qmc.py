@@ -68,7 +68,7 @@ class QMC:
             xx, yy, zz = self.readMag()
             x.append(xx)
             y.append(yy)
-            time.sleep(0.05)
+            time.sleep(0.005)
 
         xoff = - ( ( max( x ) - min( x ) ) / 2 )
         yoff = - ( ( max( y ) - min( y ) ) / 2 )
