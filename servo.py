@@ -1,7 +1,5 @@
-import pca
-
 class Servo:
-    def __init__( self, pca, channel, maxAngle = 180, minTime, maxTime ):
+    def __init__( self, pca, channel, maxAngle = 180, minTime = 0.5, maxTime = 1.5 ):
         self.pca = pca
         self.channel = channel
 
