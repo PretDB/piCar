@@ -51,8 +51,8 @@ class PCA:
 
     def setChannelValue_time_us( self, channel, delay, duty ):
         if delay + duty <= self.period * 1000000:
-            delay_r = delay / self.period
-            duty_r = duty / self.period
+            delay_r = delay / self.period / 1000000
+            duty_r = duty / self.period / 1000000
 
             self.setChannelValue_ratio( channel, delay_r, duty_r )
 
