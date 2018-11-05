@@ -13,7 +13,7 @@ class Servo:
 
     def setAngle( self, angle ):
         if angle <= self.maxAngle:
-            time = angle / self.maxAngle * ( self.maxTime - self.minTime )
+            time = angle / self.maxAngle * ( self.maxTime - self.minTime ) + self.minTime
             self.pca.setChannelValue_time_ms( self.channel, 0, time )
 
         return
