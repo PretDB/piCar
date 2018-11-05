@@ -61,8 +61,8 @@ class PCA:
     def setChannelValue_raw( self, channel, on, off ):
         on_l = on & 0x00FF
         on_h = ( on & 0xFF00 ) >> 8
-        off_l = off & 0x00FF
-        off_h = ( off & 0xFF00 ) >> 8
+        off_l = ( off + on ) & 0x00FF
+        off_h = ( ( off + on ) & 0xFF00 ) >> 8
 
         base = self.pwmReg_addressBase + channel * 4
 
