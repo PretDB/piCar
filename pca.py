@@ -82,8 +82,8 @@ class PCA:
         self.sleep( False )
         time.sleep( 1 )
 
-        self.freq = value
-        self.period = 1 / value
+        self.freq = freq
+        self.period = 1 / freq
 
         return
 
