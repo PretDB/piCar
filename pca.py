@@ -33,7 +33,7 @@ class PCA:
         delay_val = delay * 4096
         duty_val = duty * 4096
 
-        on = round( delay_val - 1 )
+        on = round( delay_val )
         off = round( delay_val + duty_val - 1 )
         self.setChannelValue_raw( channel, on, off )
 
