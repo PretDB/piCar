@@ -45,7 +45,7 @@ class PCA:
         return
 
     def setChannelValue_time_ms( self, channel, delay, duty ):
-        self.setChannelValue_time_ms( channel, delay * 1000, duty * 1000 )
+        self.setChannelValue_time_us( channel, delay * 1000, duty * 1000 )
 
         return
 
