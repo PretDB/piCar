@@ -30,10 +30,12 @@ class PCA:
         return
 
     def setChannelValue_ratio( self, channel, delay, duty ):
-        delay_val = delay * 4096 - 1
-        duty_val = duty * 4096 - 1
+        delay_val = delay * 4096
+        duty_val = duty * 4096
 
-        self.setChannelValue_raw( channel, round( delay_val ), round( duty_val ) )
+        on = round( delay_val - 1 )
+        off = round( delay_val + duty_val - 1 )
+        self.setChannelValue_raw( channel, on, off )
 
         return
 
@@ -61,8 +63,8 @@ class PCA:
     def setChannelValue_raw( self, channel, on, off ):
         on_l = on & 0x00FF
         on_h = ( on & 0xFF00 ) >> 8
-        off_l = ( off + on ) & 0x00FF
-        off_h = ( ( off + on ) & 0xFF00 ) >> 8
+        off_l = off & 0x00FF
+        off_h = ( off & 0xFF00 ) >> 8
 
         base = self.pwmReg_addressBase + channel * 4
 
