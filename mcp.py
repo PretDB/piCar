@@ -30,3 +30,28 @@ class MCP:
         self.output = 0x0000    # Default output state is all off
         self.pullUp = 0x0000    # Default pull-up state is all off
         self.invert = 0x0000    # Default input invertion state is not
+
+        pass
+    def digitalRead( self, pin ):
+        pass
+
+    def digitalWrite( self, pin, value ):
+        pass
+
+    def pullupMode( self, state, pin ):
+        pass
+
+    def pinMode( self, state, pin ):
+        pass
+
+    def inputInvert( self, invert, pin):
+        pass
+
+    def wordWrite( self, value ):
+        pass
+
+    def byteWrite( self, value ):
+        pass
+
+    def byteRead( self, value ):
+        pass
