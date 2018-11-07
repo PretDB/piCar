@@ -33,8 +33,8 @@ class MCP:
         self.pullUp = 0x0000    # Default pull-up state is all off
         self.invert = 0x0000    # Default input invertion state is not
 
-
-        pass
+        wiringpi.wiringPiSetupGpio()
+        wiringpi.wiringPiSPISetup( self.channel, 500000 )
 
     def digitalReadAll( self ):
         value = self.wordRead( 0x12 )
