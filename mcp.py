@@ -37,7 +37,9 @@ class MCP:
         wiringpi.wiringPiSPISetup( self.channel, 500000 )
 
     def digitalReadAll( self ):
-        value = self.wordRead( 0x12 )
+        raw = self.wordRead( 0x12 )
+        value = int(raw[1]) << 8
+        value = value | int(raw[0])
         value = value & 0xFFFF
 
         self.output = value
@@ -90,7 +92,7 @@ class MCP:
         send = bytes( [ self.readAddr, addr, 0x00, 0x00 ] )
         recv = wiringpi.wiringPiSPIDataRW( self.channel, send )
 
-        return recv[1][2:3]
+        return ( recv[1][2], recv[1][3] )
 
     def wordWrite( self, addr, data ):
         send = bytes( [ self.writeAddr, addr, ( data & 0x00FF ), ( ( data >> 8 ) & 0x00FF ) ] )
