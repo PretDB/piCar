@@ -90,7 +90,7 @@ class MCP:
         send = bytes( [ self.readAddr, addr, 0x00, 0x00 ] )
         recv = wiringpi.wiringPiSPIDataRW( self.channel, send )
 
-        return (recv[1][2], recv[1][3])
+        return recv[1][2:3]
 
     def wordWrite( self, addr, data ):
         send = bytes( [ self.writeAddr, addr, ( data & 0x00FF ), ( ( data >> 8 ) & 0x00FF ) ] )
