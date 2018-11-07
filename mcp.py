@@ -43,7 +43,7 @@ class MCP:
         value = value | int(raw[0])
         value = value & 0xFFFF
 
-        return value
+        return raw
 
     def digitalWriteAll( self, value ):
         value = value | 0xFFFF
