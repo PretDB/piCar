@@ -1,7 +1,7 @@
 import wiringpi
 
 class MCP:
-    def __init__( self, add, ss ):
+    def __init__( self, channel, addr, ss ):
         self.ioDirectReg_A = 0x00
         self.ioDirectReg_B = 0x01
         self.iPolarityReg_A = 0x02
@@ -24,19 +24,58 @@ class MCP:
         self.outLatch_A = 0x14
         self.outLatch_B = 0x15
 
-        self.address = add
+        self.readAddr = 0x41 | ( addr << 1 )
+        self.writeAddr = 0x40 | ( addr << 1 )
         self.ss =  ss
+        self.channel = channel
         self.mode = 0xFFFF      # Default IO mode is all input
         self.output = 0x0000    # Default output state is all off
         self.pullUp = 0x0000    # Default pull-up state is all off
         self.invert = 0x0000    # Default input invertion state is not
 
-        pass
-    def digitalRead( self, pin ):
+
         pass
 
+    def digitalReadAll( self ):
+        value = self.wordRead( 0x12 )
+        value = value & 0xFFFF
+
+        self.output = value
+
+        return value
+
+    def digitalWriteAll( self, value ):
+        value = value | 0xFFFF
+        self.wordWrite( 0x12, value )
+
+        self.output = value
+
+        return
+
+    def digitalRead( self, pin ):
+        if pin > 0 and pin < 17:
+            val = self.digitalReadAll()
+            ret = ( val >> ( pin - 1 ) ) & 0x01
+
+            return ret
+        else:
+            return
+
+    # value = 0 or 1 for reset and set
     def digitalWrite( self, pin, value ):
-        pass
+        if pin > 0 and pin < 17:
+            if value == 1:
+                val = 0x01 << ( pin - 1 )
+                self.output = self.output | val
+            elif value == 0:
+                val = ~( 1 << ( pin - 1 ) )
+                self.output = self.output & val
+
+            self.wordWrite( self.output )
+        else:
+            return
+
+        return
 
     def pullupMode( self, state, pin ):
         pass
@@ -47,11 +86,23 @@ class MCP:
     def inputInvert( self, invert, pin):
         pass
 
-    def wordWrite( self, value ):
-        pass
+    def wordRead( self, addr ):
+        send = bytes( [ self.readAddr, addr, 0x00, 0x00 ] )
+        recv = wiringpi.wiringPiSPIDataRW( self.channel, send )
 
-    def byteWrite( self, value ):
-        pass
+        return (recv[1][2], recv[1][3])
 
-    def byteRead( self, value ):
-        pass
+    def wordWrite( self, addr, data ):
+        send = bytes( [ self.writeAddr, addr, ( data & 0x00FF ), ( ( data >> 8 ) & 0x00FF ) ] )
+        wiringpi.wiringPiSPIDataRW( self.channel, send )
+        return
+
+    def regRead( self, addr ):
+        send = bytes( [ self.readAddr, addr, 0x00 ])
+        recv = wiringpi.wiringPiSPIDataRW( self.channel, send )
+        return recv[1][2]
+
+    def regWrite( self, addr, value ):
+        send = bytes( [ self.writeAddr, addr, value ])
+        wiringpi.wiringPiSPIDataRW( self.channel, send )
+        return
