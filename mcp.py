@@ -29,6 +29,7 @@ class MCP:
         self.ss =  ss
         self.channel = channel
         self.mode = 0xFFFF      # Default IO mode is all input
+        # output cache, higher 8 bits indicates B port
         self.output = 0x0000    # Default output state is all off
         self.pullUp = 0x0000    # Default pull-up state is all off
         self.invert = 0x0000    # Default input invertion state is not
@@ -41,8 +42,6 @@ class MCP:
         value = int(raw[1]) << 8
         value = value | int(raw[0])
         value = value & 0xFFFF
-
-        self.output = value
 
         return value
 
@@ -74,8 +73,6 @@ class MCP:
                 self.output = self.output & val
 
             self.wordWrite( self.output )
-        else:
-            return
 
         return
 
