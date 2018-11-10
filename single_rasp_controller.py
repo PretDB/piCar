@@ -7,18 +7,21 @@ import json
 import mecanum
 import pca
 import mcp
+import command
 
 
 def GetCommand(jsonString):
     jsonObj = json.loads(jsonString)
-    if jsonObj['Type'] == 'instruction'and jsonObj['FromRole'] == 'Controller':
-        com = jsonObj['Command']
-        args = jsonObj['Command']
+    comn = 0
+
+    if jsonObj['Type'] == 'instruction':
+        if jsonObj['FromRole'] == 'Controller':
+            comn = jsonObj['Command']
+            args = jsonObj['Args']
+
+    com = command.Command(comn)
+
     return com, args
-
-
-def SendCommand(com):
-    pass
 
 
 class trackerThread(threading.Thread):
@@ -30,6 +33,14 @@ class trackerThread(threading.Thread):
 
 
 if __name__ == "__main__":
+    # Basic hardware initialization
+    pwm = pca.PCA()    # Initialization of pca controller
+    wiringpi.wiringPiSPISetup(0, 500000)    # SPI Setup
+    pins = mcp.MCP(0, 0)    # MCP initialization
+
+    # Car initialization
+    car = mecanum.Mecanum(pwm, 1, 2, 3, 4, 1, 2, 3, 4)
+
     # Prepare network connection
     test = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     test.connect(('8.8.8.8', 80))
@@ -61,6 +72,12 @@ if __name__ == "__main__":
                 break
             print(data, flush=True)
             com, args = GetCommand(data)
+            speed = car.defaultSpeed
 
-            if not com == 1000:
-                wiringpi.serialPutchar(ser, com)
+            if args is not None and args['speed'] is not None:
+                speed = args['speed']
+
+            if com.value >= 0 and com.value <= 6:
+                car.carMove(com, speed)
+
+
