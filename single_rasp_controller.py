@@ -8,9 +8,97 @@ import mecanum
 import pca
 import mcp
 import command
+import time
 
 
-def GetCommand(jsonString):
+com = command.Command.Stop
+idleTime = 0.2
+
+
+class FireFunc(threading.Thread):    # {{{
+    def __init__(self):
+        threading.Thread.__init__(self)
+        pass
+
+    def run(self):
+        global com
+        global idleTime
+
+        while True:
+            time.sleep(idleTime)
+
+        pass
+# }}}
+
+
+class IRFunc(threading.Thread):    # {{{
+    def __init__(self):
+        threading.Thread.__init__(self)
+        pass
+
+    def run(self):
+        global com
+        global idleTime
+
+        while True:
+            time.sleep(idleTime)
+
+        pass
+# }}}
+
+
+class SonicFunc(threading.Thread):    # {{{
+    def __init__(self):
+        threading.Thread.__init__(self)
+
+        pass
+
+    def run(self):
+        global com
+        global idleTime
+        while True:
+            time.sleep(idleTime)
+
+        pass
+# }}}
+
+
+class LightFunc(threading.Thread):    # {{{
+    def __init__(self):
+        threading.Thread.__init__(self)
+
+        pass
+
+    def run(self):
+        global com
+        global idleTime
+
+        while True:
+            time.sleep(idleTime)
+
+        pass
+# }}}
+
+
+class TrackFunc(threading.Thread):    # {{{
+    def __init__(self):
+        threading.Thread.__init__(self)
+
+        pass
+
+    def run(self):
+        global com
+        global idleTime
+
+        while True:
+            time.sleep(idleTime)
+
+        pass
+# }}}
+
+
+def GetCommand(jsonString):    # {{{
+    global com
     jsonObj = json.loads(jsonString)
     comn = 0
 
@@ -21,18 +109,11 @@ def GetCommand(jsonString):
 
     com = command.Command(comn)
 
-    return com, args
-
-
-class trackerThread(threading.Thread):
-    def __init__(self):
-        pass
-
-    def run(self):
-        pass
+    return com, args    # }}}
 
 
 if __name__ == "__main__":
+    global com
     # Basic hardware initialization
     pwm = pca.PCA()    # Initialization of pca controller
     wiringpi.wiringPiSPISetup(0, 500000)    # SPI Setup
@@ -48,7 +129,6 @@ if __name__ == "__main__":
     test.close()
 
     id = int(socket.gethostname())
-    tracker = trackerThread()
 
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     port = 6688
@@ -56,9 +136,20 @@ if __name__ == "__main__":
     server.bind((localIP, port))
     server.listen(5)
 
-    ser = wiringpi.serialOpen('/dev/ttyAMA0', 9600)
-
     mode = 0
+
+    # Other thread initialization    {{{
+    trackThread = TrackFunc()
+    irThread = IRFunc()
+    lightThread = LightFunc()
+    sonicThread = SonicFunc()
+    fireThread = FireFunc()
+
+    trackThread.start()
+    irThread.start()
+    lightThread.start()
+    sonicThread.start()
+    fireThread.start()    # }}}
 
     # Main loop
     while True:
@@ -79,5 +170,3 @@ if __name__ == "__main__":
 
             if com.value >= 0 and com.value <= 6:
                 car.carMove(com, speed)
-
-
