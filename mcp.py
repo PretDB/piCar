@@ -1,7 +1,8 @@
 import wiringpi
 
+
 class MCP:
-    def __init__( self, channel, addr, ss ):
+    def __init__(self, channel, addr, ss):    # {{{
         self.ioDirectReg_A = 0x00
         self.ioDirectReg_B = 0x01
         self.iPolarityReg_A = 0x02
@@ -24,9 +25,9 @@ class MCP:
         self.outLatch_A = 0x14
         self.outLatch_B = 0x15
 
-        self.readAddr = 0x41 | ( addr << 1 )
-        self.writeAddr = 0x40 | ( addr << 1 )
-        self.ss =  ss
+        self.readAddr = 0x41 | (addr << 1)
+        self.writeAddr = 0x40 | (addr << 1)
+        self.ss = ss
         self.channel = channel
         self.mode = 0xFFFF      # Default IO mode is all input
         # output cache, higher 8 bits indicates B port
@@ -35,73 +36,78 @@ class MCP:
         self.invert = 0x0000    # Default input invertion state is not
 
         wiringpi.wiringPiSetupGpio()
-        wiringpi.wiringPiSPISetup( self.channel, 500000 )
+        wiringpi.wiringPiSPISetup(self.channel, 500000)
 
-    def digitalReadAll( self ):
-        raw = self.wordRead( 0x12 )
+        return    # }}}
+
+    def digitalReadAll(self):    # {{{
+        raw = self.wordRead(0x12)
         value = int(raw[1]) << 8
         value = value | int(raw[0])
         value = value & 0xFFFF
 
-        return raw
+        return raw    # }}}
 
-    def digitalWriteAll( self, value ):
+    def digitalWriteAll(self, value):    # {{{
         value = value | 0xFFFF
-        self.wordWrite( 0x12, value )
+        self.wordWrite(0x12, value)
 
         self.output = value
 
-        return
+        return    # }}}
 
-    def digitalRead( self, pin ):
+    def digitalRead(self, pin):    # {{{
         if pin > 0 and pin < 17:
             val = self.digitalReadAll()
-            ret = ( val >> ( pin - 1 ) ) & 0x01
+            ret = (val >> (pin - 1)) & 0x01
 
             return ret
         else:
             return
 
-    # value = 0 or 1 for reset and set
-    def digitalWrite( self, pin, value ):
+# }}}
+
+    # value = 0 or 1 for reset or set
+    def digitalWrite(self, pin, value):    # {{{
         if pin > 0 and pin < 17:
             if value == 1:
-                val = 0x01 << ( pin - 1 )
+                val = 0x01 << (pin - 1)
                 self.output = self.output | val
             elif value == 0:
-                val = ~( 1 << ( pin - 1 ) )
+                val = ~(1 << (pin - 1))
                 self.output = self.output & val
 
-            self.wordWrite( self.output )
+            self.wordWrite(self.output)
 
-        return
+        return    # }}}
 
-    def pullupMode( self, state, pin ):
-        pass
+    def pullupMode(self, state, pin):    # {{{
+        pass    # }}}
 
-    def pinMode( self, state, pin ):
-        pass
+    def pinMode(self, state, pin):    # {{{
+        pass    # }}}
 
-    def inputInvert( self, invert, pin):
-        pass
+    def inputInvert(self, invert, pin):    # {{{
+        pass    # }}}
 
-    def wordRead( self, addr ):
-        send = bytes( [ self.readAddr, addr, 0x00, 0x00 ] )
-        recv = wiringpi.wiringPiSPIDataRW( self.channel, send )
+    def wordRead(self, addr):    # {{{
+        send = bytes([self.readAddr, addr, 0x00, 0x00])
+        recv = wiringpi.wiringPiSPIDataRW(self.channel, send)
 
-        return ( recv[1][2], recv[1][3] )
+        return (recv[1][2], recv[1][3])    # }}}
 
-    def wordWrite( self, addr, data ):
-        send = bytes( [ self.writeAddr, addr, ( data & 0x00FF ), ( ( data >> 8 ) & 0x00FF ) ] )
-        wiringpi.wiringPiSPIDataRW( self.channel, send )
-        return
+    def wordWrite(self, addr, data):    # {{{
+        send = bytes([self.writeAddr, addr,
+                      (data & 0x00FF), ((data >> 8) & 0x00FF)])
+        wiringpi.wiringPiSPIDataRW(self.channel, send)
+        return    # }}}
 
-    def regRead( self, addr ):
-        send = bytes( [ self.readAddr, addr, 0x00 ])
-        recv = wiringpi.wiringPiSPIDataRW( self.channel, send )
-        return recv[1][2]
+    def regRead(self, addr):    # {{{
+        send = bytes([self.readAddr, addr, 0x00])
+        recv = wiringpi.wiringPiSPIDataRW(self.channel, send)
+        return recv[1][2]    # }}}
 
-    def regWrite( self, addr, value ):
-        send = bytes( [ self.writeAddr, addr, value ])
-        wiringpi.wiringPiSPIDataRW( self.channel, send )
-        return
+    def regWrite(self, addr, value):    # {{{
+        send = bytes([self.writeAddr, addr, value])
+        wiringpi.wiringPiSPIDataRW(self.channel, send)
+        return    # }}}

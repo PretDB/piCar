@@ -10,16 +10,18 @@ class Motor:
         return
 
     # speed is described in ratio
-    def rotate( self, inverse, speed ):
+    # inverse = True or 1 for inverse
+    def rotate(self, inverse, speed):
         if not inverse:
-            wiringpi.digitalWrite( self.invPin, wiringpi.LOW )
+            wiringpi.digitalWrite(self.invPin, wiringpi.LOW)
+            self.pca.setChannelValue_ratio(self.pwmChannel, 0, 1 - speed)
         else:
-            wiringpi.digitalWrite( self.invPin, wiringpi.HIGH )
+            wiringpi.digitalWrite(self.invPin, wiringpi.HIGH)
+            self.pca.setChannelValue_ratio(self.pwmChannel, 0, speed)
 
-        self.pca.setChannelValue_ratio( self.pwmChannel, 0, speed )
         return
 
-    def stop( self ):
-        self.rotate( False, 0 )
+    def stop(self):
+        self.rotate(False, 0)
 
         return
