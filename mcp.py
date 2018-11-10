@@ -2,7 +2,7 @@ import wiringpi
 
 
 class MCP:
-    def __init__(self, channel, addr, ss):    # {{{
+    def __init__(self, channel, addr):    # {{{
         self.ioDirectReg_A = 0x00
         self.ioDirectReg_B = 0x01
         self.iPolarityReg_A = 0x02
@@ -27,7 +27,6 @@ class MCP:
 
         self.readAddr = 0x41 | (addr << 1)
         self.writeAddr = 0x40 | (addr << 1)
-        self.ss = ss
         self.channel = channel
         self.mode = 0xFFFF      # Default IO mode is all input
         # output cache, higher 8 bits indicates B port
