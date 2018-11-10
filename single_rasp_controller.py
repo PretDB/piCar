@@ -136,8 +136,6 @@ if __name__ == "__main__":
     server.bind((localIP, port))
     server.listen(5)
 
-    mode = 0
-
     # Other thread initialization    {{{
     trackThread = TrackFunc()
     irThread = IRFunc()
@@ -151,7 +149,7 @@ if __name__ == "__main__":
     sonicThread.start()
     fireThread.start()    # }}}
 
-    # Main loop
+    # Main loop    {{{
     while True:
         clientsocket, addr = server.accept()
         print("client connected, address: ", str(addr), flush=True)
@@ -170,3 +168,5 @@ if __name__ == "__main__":
 
             if com.value >= 0 and com.value <= 6:
                 car.carMove(com, speed)
+
+    # End of main loop    }}}
