@@ -9,22 +9,40 @@ import pca
 import mcp
 import command
 import time
+import servo
+import tracker
 
 
 com = command.Command.Stop
-idleTime = 0.2
+fire = False
+idleTime = 0.1
 
 
 class FireFunc(threading.Thread):    # {{{
-    def __init__(self):
+    def __init__(self, mcp, cchannel, dchannel):
         threading.Thread.__init__(self)
+        self.mcp = mcp
+        self.control = cchannel
+        self.detect = dchannel
+
+        self.mcp.pinMode(self.control, 0)
+        self.mcp.pinMode(self.detect, 1)
+
         pass
 
     def run(self):
         global com
+        global fire
         global idleTime
 
         while True:
+            if fire:
+                if self.mcp.digitalRead(self.detect) == 0:
+                    self.mcp.digitalWrite(self.control, 1)
+                    time.sleep(5)
+                else:
+                    self.mcp.digitalWrite(self.control, 0)
+
             time.sleep(idleTime)
 
         pass
@@ -32,15 +50,34 @@ class FireFunc(threading.Thread):    # {{{
 
 
 class IRFunc(threading.Thread):    # {{{
-    def __init__(self):
+    def __init__(self, mcp, l, r):
         threading.Thread.__init__(self)
+        self.mcp = mcp
+        self.lchannel = l
+        self.rchannel = r
+
+        self.mcp.pinMode(self.lchannel, 1)
+        self.mcp.pinMode(self.rchannel, 1)
+
         pass
 
     def run(self):
         global com
         global idleTime
+        global car
 
         while True:
+            if com == command.Command.IR:
+                lstate = self.mcp.digitalRead(self.lchannel)
+                rstate = self.mcp.digitalRead(self.rchannel)
+
+                if lstate == 0:
+                    car.carMove(command.Command.RightRotate)
+                elif rstate == 0:
+                    car.carMove(command.Command.LeftRotate)
+                else:
+                    car.carMove(command.Command.Forward)
+
             time.sleep(idleTime)
 
         pass
@@ -48,32 +85,111 @@ class IRFunc(threading.Thread):    # {{{
 
 
 class SonicFunc(threading.Thread):    # {{{
-    def __init__(self):
+    def __init__(self, pca, channel, mcp, echo, trig):
         threading.Thread.__init__(self)
+        self.servo = servo.Servo(pca, channel)
+        self.mcp = mcp
+        self.trigPin = trig
+        self.echoPin = echo
+
+        self.mcp.pinMode(self.trigPin, 0)
+        self.mcp.pinMode(self.echoPin, 1)
 
         pass
 
-    def run(self):
+    def readCM(self):
+        self.mcp.digitalWrite(self.trigPin, wiringpi.HIGH)
+        time.sleep(0.00001)
+        self.mcp.digitalWrite(self. trigPin, wiringpi.LOW)
+
+        while self.mcp.digitalRead(self.echoPin) == 0:
+            pass
+        startTime = time.time()
+        while self.mcp.digitalRead(self.echoPin) == 1:
+            pass
+        endTime = time.time()
+
+        t = endTime - startTime
+        d = t * 343 / 2 * 100
+
+        return d
+
+    def run(self):    # Task loop {{{
         global com
         global idleTime
+        global car
+
         while True:
+            if com == command.Command.Sonic:
+                self.servo.setAngle(135)
+                time.sleep(0.5)
+                ld = self.readCM()
+                self.servo.setAngle(90)
+                time.sleep(0.5)
+                cd = self.readCM()
+                self.servo.setAngle(45)
+                time.sleep(0.5)
+                rd = self.readCM()
+
+                if cd > 30 or cd < 10:
+                    car.carMove(command.Command.Forward)
+                else:
+                    if ld > rd:
+                        car.carMove(command.Command.LeftRotate)
+                    else:
+                        car.carMove(command.Command.RightRotate)
+
+                    time.sleep(idleTime * 10)
+
             time.sleep(idleTime)
 
-        pass
+        pass    # }}}
 # }}}
 
 
 class LightFunc(threading.Thread):    # {{{
-    def __init__(self):
+    def __init__(self, mcp, front, left, right, rear):
         threading.Thread.__init__(self)
+
+        self.mcp = mcp
+        self.front = front
+        self.left = left
+        self.right = right
+        self.rear = rear
+
+        self.mcp.pinMode(self.front, 1)
+        self.mcp.pinMode(self.left, 1)
+        self.mcp.pinMode(self.right, 1)
+        self.mcp.pinMode(self.rear, 1)
 
         pass
 
     def run(self):
         global com
         global idleTime
+        global car
 
         while True:
+            if com = command.Command.Light:
+                if self.mcp.digitalRead(self.front) == 0:
+                    car.carMove(command.Command.Forward)
+                    continue
+
+                elif self.mcp.digitalRead(self.left) == 0:
+                    car.carMove(command.Command.LeftRotate)
+                    continue
+
+                elif self.mcp.digitalRead(self.right) == 0:
+                    car.carMove(command.Command.RightRotate)
+                    continue
+
+                elif self.mcp.digitalRead(self.rear) == 0:
+                    car.carMove(command.Command.Backward)
+                    continue
+
+                else:
+                    car.carMove(command.Command.Stop)
+
             time.sleep(idleTime)
 
         pass
@@ -82,15 +198,22 @@ class LightFunc(threading.Thread):    # {{{
 
 class TrackFunc(threading.Thread):    # {{{
     def __init__(self):
-        threading.Thread.__init__(self)
+        threading.Thread.__init__(self, videoDev)
+
+        self.trakr = tracker.tracker(videoDev)
 
         pass
 
     def run(self):
         global com
         global idleTime
+        global car
 
         while True:
+            if com == command.Command.Track:
+                d = self.trakr.getDir()
+                car.carMove(d)
+
             time.sleep(idleTime)
 
         pass
@@ -112,12 +235,12 @@ def GetCommand(jsonString):    # {{{
     return com, args    # }}}
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":    # {{{
     global com
     # Basic hardware initialization
     pwm = pca.PCA()    # Initialization of pca controller
     wiringpi.wiringPiSPISetup(0, 500000)    # SPI Setup
-    pins = mcp.MCP(0, 0)    # MCP initialization
+    pins = mcp.MCP(channel=0, addr=0)    # MCP initialization
 
     # Car initialization
     car = mecanum.Mecanum(pwm, 1, 2, 3, 4, 1, 2, 3, 4)
@@ -161,12 +284,19 @@ if __name__ == "__main__":
                 break
             print(data, flush=True)
             com, args = GetCommand(data)
+            args = json.loads(args)
             speed = car.defaultSpeed
 
-            if args is not None and args['speed'] is not None:
-                speed = args['speed']
+            if args is not None:
+                if args.keys().__contains__('Speed'):
+                    speed = args['Speed']
+
+                if args.keys().__contains__('Fire'):
+                    fire= args['Fire']
+                pass
 
             if com.value >= 0 and com.value <= 6:
                 car.carMove(com, speed)
 
     # End of main loop    }}}
+# End of main func }}}

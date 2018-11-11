@@ -83,7 +83,29 @@ class MCP:
     def pullupMode(self, state, pin):    # {{{
         pass    # }}}
 
-    def pinMode(self, state, pin):    # {{{
+    def pinModeAll(self, mode):    # {{{
+        amode = mode & 0x00FF
+        bmode = mode >> 8 & 0x00FF
+        self.regWrite(0x00, amode)
+        self.regWrite(0x01, bmode)
+
+        self.mode = mode
+
+        pass    # }}}
+
+    def pinMode(self, pin, mode):    # {{{
+        self.mode = self.regRead(0x01)
+        self.mode = (self.mode << 8) | self.regRead(0x00)
+
+        if mode == 1:
+            mode = mode << (pin - 1)
+            self.mode = self.mode | mode
+        elif mode == 0:
+            mode = ~(mode << (pin - 1))
+            self.mode = self.mode & mode
+
+        self.pinModeAll(self.mode)
+
         pass    # }}}
 
     def inputInvert(self, invert, pin):    # {{{
