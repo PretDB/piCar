@@ -29,8 +29,7 @@ class MCP:
         self.writeAddr = 0x40 | (addr << 1)
         self.channel = channel
 
-        self.mode = self.regRead(0x00)
-        self.mode = self.mode << 8 | self.regRead(0x01)
+        self.mode = 0xFFFF
         # output cache, higher 8 bits indicates B port
         self.output = 0x0000    # Default output state is all off
         self.pullUp = 0x0000    # Default pull-up state is all off
