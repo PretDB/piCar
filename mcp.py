@@ -98,10 +98,10 @@ class MCP:
         self.mode = (self.mode << 8) | self.regRead(0x00)
 
         if mode == 1:
-            mode = mode << (pin - 1)
+            mode = 1 << (pin - 1)
             self.mode = self.mode | mode
         elif mode == 0:
-            mode = ~(mode << (pin - 1))
+            mode = ~(1 << (pin - 1))
             self.mode = self.mode & mode
 
         self.pinModeAll(self.mode)
