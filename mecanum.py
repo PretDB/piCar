@@ -8,13 +8,13 @@ from command import Command
 # Port C => TR
 # Port D => TL
 class Mecanum:
-    def __init__(self, pcaInst, hlP, hrP, tlP, trP, hlC, hrC, tlC, trC):  # {{{
-        self.hl = motor.Motor(pcaInst, hlP, hlC)
-        self.hr = motor.Motor(pcaInst, hrP, hrC)
-        self.tl = motor.Motor(pcaInst, tlP, tlC)
-        self.tr = motor.Motor(pcaInst, trP, trC)
+    def __init__(self, pcaInst, hlP, hrP, tlP, trP, mcpInst, hlC, hrC, tlC, trC):  # {{{
+        self.hl = motor.Motor(pcaInst, hlP, mcpInst, hlC)
+        self.hr = motor.Motor(pcaInst, hrP, mcpInst, hrC)
+        self.tl = motor.Motor(pcaInst, tlP, mcpInst, tlC)
+        self.tr = motor.Motor(pcaInst, trP, mcpInst, trC)
 
-        self.defaultSpeed = 0.3
+        self.defaultSpeed = 0.2
 
         return    # }}}
 

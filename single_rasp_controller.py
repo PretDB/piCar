@@ -243,7 +243,7 @@ if __name__ == "__main__":    # {{{
     pins = mcp.MCP(channel=0, addr=0)    # MCP initialization
 
     # Car initialization
-    car = mecanum.Mecanum(pwm, 1, 2, 3, 4, 1, 2, 3, 4)
+    car = mecanum.Mecanum(pwm, 0, 1, 2, 3, pins, 1, 2, 3, 4)
 
     # Prepare network connection
     test = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
