@@ -8,6 +8,8 @@ class Motor:
         self.pca = pcaInstance
         self.mcp = mcpInstance
 
+        self.mcp.pinMode(self.invPin, 0)
+
         return
 
     # speed is described in ratio
