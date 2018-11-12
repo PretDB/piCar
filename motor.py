@@ -17,10 +17,10 @@ class Motor:
     def rotate(self, inverse, speed):
         if not inverse:
             self.mcp.digitalWrite(self.invPin, 0)
-            self.pca.setChannelValue_ratio(self.pwmChannel, 0, 1 - speed)
+            self.pca.setChannelValue_ratio(self.pwmChannel, 0, speed)
         else:
             self.mcp.digitalWrite(self.invPin, 1)
-            self.pca.setChannelValue_ratio(self.pwmChannel, 0, speed)
+            self.pca.setChannelValue_ratio(self.pwmChannel, 0, 1 - speed)
 
         return
 
