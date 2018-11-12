@@ -76,7 +76,7 @@ class MCP:
                 val = ~(1 << (pin - 1))
                 self.output = self.output & val
 
-            self.wordWrite(self.output)
+            self.digitalWriteAll(self.output)
 
         return    # }}}
 
