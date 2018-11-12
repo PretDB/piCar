@@ -35,7 +35,7 @@ class MCP:
         self.pullUp = 0x0000    # Default pull-up state is all off
         self.invert = 0x0000    # Default input invertion state is not
 
-        wiringpi.wiringPiSetupGpio()
+        # wiringpi.wiringPiSetupGpio()
         wiringpi.wiringPiSPISetup(self.channel, 500000)
 
         return    # }}}
