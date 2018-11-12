@@ -28,7 +28,9 @@ class MCP:
         self.readAddr = 0x41 | (addr << 1)
         self.writeAddr = 0x40 | (addr << 1)
         self.channel = channel
-        self.mode = 0xFFFF      # Default IO mode is all input
+
+        self.mode = self.regRead(0x00)
+        self.mode = self.mode << 8 | self.regRead(0x01)
         # output cache, higher 8 bits indicates B port
         self.output = 0x0000    # Default output state is all off
         self.pullUp = 0x0000    # Default pull-up state is all off
@@ -48,7 +50,7 @@ class MCP:
         return raw    # }}}
 
     def digitalWriteAll(self, value):    # {{{
-        value = value | 0xFFFF
+        value = value & 0xFFFF
         self.wordWrite(0x12, value)
 
         self.output = value
@@ -97,14 +99,15 @@ class MCP:
         self.mode = self.regRead(0x01)
         self.mode = (self.mode << 8) | self.regRead(0x00)
 
-        if mode == 1:
-            mode = 1 << (pin - 1)
-            self.mode = self.mode | mode
-        elif mode == 0:
-            mode = ~(1 << (pin - 1))
-            self.mode = self.mode & mode
+        if pin > 0 and pin < 17:
+            if mode == 1:
+                mode = 0x01 << (pin - 1)
+                self.mode = self.mode | mode
+            elif mode == 0:
+                mode = ~(1 << (pin - 1))
+                self.mode = self.mode & mode
 
-        self.pinModeAll(self.mode)
+            self.pinModeAll(self.mode)
 
         pass    # }}}
 
