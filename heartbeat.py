@@ -12,7 +12,7 @@ isDebug = len(sys.argv) > 1
 
 fieldX = 1
 fieldY = 1
-lastLoc = (0, 0)
+lastLoc = (0.1, 0.1)
 
 if isDebug:
     import random
@@ -24,10 +24,10 @@ else:
     spi.open(0, 0)
     spi.max_speed_hz = 5000
 
-    usb = wiringpi.serialOpen('/dev/ttyUSB0', 115200)
+    # usb = wiringpi.serialOpen('/dev/ttyUSB0', 115200)
 
     # Hardware Initializations
-    ser = serial.Serial('/dev/ttyUSB1', 115200)
+    ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=0.5)
 
     fieldX = 6
     fieldY = 4
@@ -69,8 +69,8 @@ def GetLoc():
     global fieldX
     global fieldY
 
-    x = 0.0
-    y = 0.0
+    x = lastLoc[0]
+    y = lastLoc[1]
     t = 0
     if not isDebug:
         try:
@@ -81,6 +81,7 @@ def GetLoc():
             if start < end:
                 m = bytes(raw[start: end])
                 msg = m.decode(encoding='ascii')
+                print(msg)
 
                 tagIndex = msg.index('T')
                 tag = msg[tagIndex + 1]
@@ -94,6 +95,9 @@ def GetLoc():
                     x = xVal / fieldX
                     y = yVal / fieldY
                     t = tag
+                    if x <= 0 or y <= 0 or x > 1 or y > 1:
+                        x = lastLoc[0]
+                        y = lastLoc[1]
                 else:
                     print('Error in func GetLoc: ' +
                           'tag not right, use last location')
@@ -101,13 +105,17 @@ def GetLoc():
                 print('Error in func GetLoc: ' +
                       'message string not valid, use last location')
         except ValueError:
-            return None
+            x = lastLoc[0]
+            y = lastLoc[1]
+            print('exception')
 
     else:
         x = round(random.random(), 2)
         y = round(random.random(), 2)
-    lastLoc = (x, y)
-    loc = {'tag': t, 'X': lastLoc[0], 'Y': lastLoc[1]}
+        # x = round(0.3, 2)
+        # y = round(0.3, 2)
+    lastLoc = (round(x, 2), round(y, 2))
+    loc = {'tag': t, 'X': 1 - lastLoc[0], 'Y': lastLoc[1]}
     return loc
 
 

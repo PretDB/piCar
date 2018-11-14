@@ -1,4 +1,5 @@
 import motor
+import time
 from command import Command
 
 
@@ -14,6 +15,8 @@ class Mecanum:
         self.tl = motor.Motor(pcaInst, tlP, mcpInst, tlC)
         self.tr = motor.Motor(pcaInst, trP, mcpInst, trC)
 
+        self.state = Command.Stop
+
         self.defaultSpeed = 0.2
 
         return    # }}}
@@ -24,6 +27,10 @@ class Mecanum:
         return    # }}}
 
     def carMove(self, com, speed):    # {{{
+        if not com == self.state and not com == Command.Stop:
+            self.carMove(Command.Stop, speed)
+            time.sleep(0.1)
+
         if com == Command.Forward:    # {{{
             self.hl.rotate(False, speed)
             self.hr.rotate(False, speed)
