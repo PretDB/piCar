@@ -27,7 +27,7 @@ else:
     # usb = wiringpi.serialOpen('/dev/ttyUSB0', 115200)
 
     # Hardware Initializations
-    ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=0.5)
+    ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=1)
 
     fieldX = 6
     fieldY = 4
@@ -107,7 +107,6 @@ def GetLoc():
         except ValueError:
             x = lastLoc[0]
             y = lastLoc[1]
-            print('exception')
 
     else:
         x = round(random.random(), 2)
