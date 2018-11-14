@@ -6,6 +6,7 @@ import json
 import spidev
 import wiringpi
 import serial
+import qmc
 
 isDebug = len(sys.argv) > 1
 
@@ -16,17 +17,24 @@ lastLoc = (0, 0)
 if isDebug:
     import random
 
-
     id = 0
+
 else:
     spi = spidev.SpiDev()
     spi.open(0, 0)
     spi.max_speed_hz = 5000
 
+    usb = wiringpi.serialOpen('/dev/ttyUSB0', 115200)
+
+    # Hardware Initializations
+    ser = serial.Serial('/dev/ttyUSB1', 115200)
+
     fieldX = 6
     fieldY = 4
 
     id = int(socket.gethostname())
+
+compass = qmc.QMC(True)
 
 # Network Initializations
 address = ('<broadcast>', 6868)
@@ -38,18 +46,22 @@ testS.close()
 s.bind(('', 9999))
 s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
-# Hardware Initializations
-
-ser = serial.Serial('/dev/ttyUSB1', 115200)
 
 
-heartbeatPackage = {'FromIP':localIP,'FromID':id, 'FromRole':'car','Type':'heartbeat','Msg':None}
+heartbeatPackage = {'FromIP': localIP, 'FromID': id, 'FromRole': 'car',
+                    'Type': 'heartbeat', 'Msg': None}
 
 
-heartbeatCount= 0
+heartbeatCount = 0
 c = 0
 
-usb = wiringpi.serialOpen('/dev/ttyUSB0', 115200);
+
+
+def GetOri():
+    global compass
+
+    angle = compass.readAngle()
+    return round(angle)
 
 
 def GetLoc():
@@ -67,7 +79,7 @@ def GetLoc():
             start = raw.rindex(b'^')
             end = raw.rindex(b'$')
             if start < end:
-                m = bytes(raw[start : end])
+                m = bytes(raw[start: end])
                 msg = m.decode(encoding='ascii')
 
                 tagIndex = msg.index('T')
@@ -75,37 +87,40 @@ def GetLoc():
                 if str(id) == str(msg[tagIndex + 1]):
                     xIndex = msg.index('X')
                     yIndex = msg.index('Y')
-                    xString = msg[xIndex + 1 : yIndex]
-                    yString = msg[yIndex + 1 : ]
+                    xString = msg[xIndex + 1: yIndex]
+                    yString = msg[yIndex + 1:]
                     xVal = float(xString)
                     yVal = float(yString)
                     x = xVal / fieldX
                     y = yVal / fieldY
                     t = tag
                 else:
-                    print('Error in func GetLoc: tag not right, use last location')
+                    print('Error in func GetLoc: ' +
+                          'tag not right, use last location')
             else:
-                print('Error in func GetLoc: message string not valid, use last location')
+                print('Error in func GetLoc: ' +
+                      'message string not valid, use last location')
         except ValueError:
             return None
 
     else:
-        x = round( random.random(), 2)
-        y = round( random.random(), 2)
+        x = round(random.random(), 2)
+        y = round(random.random(), 2)
     lastLoc = (x, y)
-    loc = {'tag' : t, 'X' : lastLoc[0], 'Y' : lastLoc[1]}
+    loc = {'tag': t, 'X': lastLoc[0], 'Y': lastLoc[1]}
     return loc
 
 
 while True:
-    heartbeatCount= heartbeatCount + 1
+    heartbeatCount = heartbeatCount + 1
 
     # Get location data
     loc = GetLoc()
-    if loc != None:
-        heartbeatPackage['Msg'] = {'position' : loc}
+    ang = GetOri()
+    if loc is not None:
+        heartbeatPackage['Msg'] = {'position': loc, 'orientation': ang}
     else:
-        heartbeatPackage['Msg'] = None
+        heartbeatPackage['Msg'] = {'orientation': ang}
 
     dataRaw = json.dumps(heartbeatPackage)
     dataByte = dataRaw.encode('utf-8')
@@ -116,4 +131,3 @@ while True:
     print('')
 
     time.sleep(0.2)
-
