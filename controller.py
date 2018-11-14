@@ -293,7 +293,7 @@ if __name__ == "__main__":    # {{{
             speed = car.defaultSpeed
 
             if args is not None:
-                args = json.loads(args)
+                # args = json.loads(args)
                 if args.keys().__contains__('Speed'):
                     speed = args['Speed']
 
