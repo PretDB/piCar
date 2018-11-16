@@ -92,6 +92,7 @@ def GetLoc():
                     x = xVal / fieldX
                     y = yVal / fieldY
                     t = tag
+                    print('Good data from LiFi')
             else:
                 print('Bad data from LiFi, use last location')
                 leg = True
@@ -125,7 +126,7 @@ while True:
     s.sendto(dataByte, address)
     print('')
     print(time.ctime(), 'count: ', heartbeatCount, )
-    print('Data: ', dataByte)
+    print('Loc: ', loc)
 
     if not leg:
-        time.sleep(0.2)
+        time.sleep(0.3)
