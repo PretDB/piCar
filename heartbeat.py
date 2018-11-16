@@ -7,6 +7,7 @@ import spidev
 import wiringpi
 import serial
 import qmc
+import re
 
 isDebug = len(sys.argv) > 1
 
@@ -55,6 +56,8 @@ heartbeatPackage = {'FromIP': localIP, 'FromID': id, 'FromRole': 'car',
 heartbeatCount = 0
 c = 0
 
+pattern = re.compile(r'T([0-1])X(-?\d\.\d+)Y(-?\d\.\d+)')
+
 
 
 def GetOri():
@@ -74,24 +77,16 @@ def GetLoc():
     t = 0
     if not isDebug:
         try:
-            # raw = bytes(spi.readbytes(128))
             raw = ser.readline()
-            start = raw.rindex(b'^')
-            end = raw.rindex(b'$')
-            if start < end:
-                m = bytes(raw[start: end])
-                msg = m.decode(encoding='ascii')
-                print(msg)
+            msg = raw.decode(encoding='ascii')
+            print(msg)
+            res = pattern.search(msg)
+            if not res == None:
 
-                tagIndex = msg.index('T')
-                tag = msg[tagIndex + 1]
-                if str(id) == str(msg[tagIndex + 1]):
-                    xIndex = msg.index('X')
-                    yIndex = msg.index('Y')
-                    xString = msg[xIndex + 1: yIndex]
-                    yString = msg[yIndex + 1:]
-                    xVal = float(xString)
-                    yVal = float(yString)
+                tag = res.groups()[0]
+                if str(id) == tag:
+                    xVal = float(res.groups()[1])
+                    yVal = float(res.groups()[2])
                     x = xVal / fieldX
                     y = yVal / fieldY
                     t = tag
