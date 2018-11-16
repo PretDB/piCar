@@ -71,6 +71,7 @@ def GetLoc():
     global lastLoc
     global fieldX
     global fieldY
+    leg = False
 
     x = lastLoc[0]
     y = lastLoc[1]
@@ -78,11 +79,12 @@ def GetLoc():
     if not isDebug:
         try:
             raw = ser.readline()
+            raw = raw[:raw.rindex(b'$')]
             msg = raw.decode(encoding='ascii')
             print(msg)
             res = pattern.search(msg)
             if not res == None:
-
+    
                 tag = res.groups()[0]
                 if str(id) == tag:
                     xVal = float(res.groups()[1])
@@ -90,34 +92,27 @@ def GetLoc():
                     x = xVal / fieldX
                     y = yVal / fieldY
                     t = tag
-                    if x <= 0 or y <= 0 or x > 1 or y > 1:
-                        x = lastLoc[0]
-                        y = lastLoc[1]
-                else:
-                    print('Error in func GetLoc: ' +
-                          'tag not right, use last location')
             else:
-                print('Error in func GetLoc: ' +
-                      'message string not valid, use last location')
+                print('Bad data from LiFi, use last location')
+                leg = True
         except ValueError:
             x = lastLoc[0]
             y = lastLoc[1]
-
     else:
-        x = round(random.random(), 2)
-        y = round(random.random(), 2)
+        x = random.random()
+        y = random.random()
         # x = round(0.3, 2)
         # y = round(0.3, 2)
-    lastLoc = (round(x, 2), round(y, 2))
-    loc = {'tag': t, 'X': 1 - lastLoc[0], 'Y': lastLoc[1]}
-    return loc
+    lastLoc = (x, y)
+    loc = {'tag': t, 'X': round(1 - lastLoc[0], 2), 'Y': round(lastLoc[1], 2)}
+    return (loc, leg)
 
 
 while True:
     heartbeatCount = heartbeatCount + 1
 
     # Get location data
-    loc = GetLoc()
+    loc, leg = GetLoc()
     ang = GetOri()
     if loc is not None:
         heartbeatPackage['Msg'] = {'position': loc, 'orientation': ang}
@@ -128,8 +123,9 @@ while True:
     dataByte = dataRaw.encode('utf-8')
 
     s.sendto(dataByte, address)
+    print('')
     print(time.ctime(), 'count: ', heartbeatCount, )
     print('Data: ', dataByte)
-    print('')
 
-    time.sleep(0.2)
+    if not leg:
+        time.sleep(0.2)
