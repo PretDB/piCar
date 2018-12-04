@@ -4,10 +4,10 @@ import socket
 import time
 import json
 import spidev
-import wiringpi
 import serial
 import qmc
 import re
+import locator
 
 isDebug = len(sys.argv) > 1
 
@@ -25,7 +25,6 @@ else:
     spi.open(0, 0)
     spi.max_speed_hz = 5000
 
-    # usb = wiringpi.serialOpen('/dev/ttyUSB0', 115200)
 
     # Hardware Initializations
     ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=0.3)
@@ -47,6 +46,9 @@ testS.close()
 s.bind(('', 9999))
 s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
+loketyr = locator.Locator()
+loketyr.start()
+
 
 
 heartbeatPackage = {'FromIP': localIP, 'FromID': id, 'FromRole': 'car',
@@ -55,9 +57,6 @@ heartbeatPackage = {'FromIP': localIP, 'FromID': id, 'FromRole': 'car',
 
 heartbeatCount = 0
 c = 0
-
-pattern = re.compile(r'T([0-1])X(-?\d\.\d+)Y(-?\d\.\d+)')
-
 
 
 def GetOri():
@@ -71,6 +70,8 @@ def GetLoc():
     global lastLoc
     global fieldX
     global fieldY
+    global loketyr
+
     leg = False
 
     x = lastLoc[0]
@@ -78,21 +79,15 @@ def GetLoc():
     t = 0
     if not isDebug:
         try:
-            raw = ser.readline()
-            raw = raw[:raw.rindex(b'$')]
-            msg = raw.decode(encoding='ascii')
-            print(msg)
-            res = pattern.search(msg)
+            res = loketyr.loc
             if not res == None:
-    
-                tag = res.groups()[0]
+                tag = res[0]
                 if str(id) == tag:
-                    xVal = float(res.groups()[1])
-                    yVal = float(res.groups()[2])
+                    xVal = float(res[1])
+                    yVal = float(res[2])
                     x = xVal / fieldX
                     y = yVal / fieldY
                     t = tag
-                    print('Good data from LiFi')
             else:
                 print('Bad data from LiFi, use last location')
                 leg = True
