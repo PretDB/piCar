@@ -4,9 +4,9 @@ import socket
 import time
 import json
 import spidev
-import serial
+# import serial
 import qmc
-import re
+# import re
 import locator
 
 isDebug = len(sys.argv) > 1
@@ -27,7 +27,7 @@ else:
 
 
     # Hardware Initializations
-    ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=0.3)
+    # ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=0.3)
 
     fieldX = 6
     fieldY = 4
