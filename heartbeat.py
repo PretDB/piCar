@@ -4,7 +4,6 @@ import socket
 import time
 import json
 import spidev
-import wiringpi
 import serial
 import qmc
 import re
@@ -84,7 +83,7 @@ def GetLoc():
             print(msg)
             res = pattern.search(msg)
             if not res == None:
-    
+
                 tag = res.groups()[0]
                 if str(id) == tag:
                     xVal = float(res.groups()[1])
