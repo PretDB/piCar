@@ -27,7 +27,7 @@ else:
 
 
     # Hardware Initializations
-    # ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=0.3)
+    ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=0.3)
 
     fieldX = 6
     fieldY = 4
