@@ -45,28 +45,28 @@ class Mecanum:
             self.tr.rotate(True, speed)
             pass    # }}}
 
-        elif com == Command.LeftShift:    # {{{
+        elif com == Command.LeftRotate:    # {{{
             self.hl.rotate(True, speed)
             self.hr.rotate(False, speed)
             self.tl.rotate(False, speed)
             self.tr.rotate(True, speed)
             pass    # }}}
 
-        elif com == Command.RightShift:    # {{{
+        elif com == Command.RightRotate:    # {{{
             self.hl.rotate(False, speed)
             self.hr.rotate(True, speed)
             self.tl.rotate(True, speed)
             self.tr.rotate(False, speed)
             pass    # }}}
 
-        elif com == Command.LeftRotate:    # {{{
+        elif com == Command.LeftShift:    # {{{
             self.hl.rotate(True, speed)
             self.hr.rotate(False, speed)
             self.tl.rotate(True, speed)
             self.tr.rotate(False, speed)
             pass    # }}}
 
-        elif com == Command.RightRotate:    # {{{
+        elif com == Command.RightShift:    # {{{
             self.hl.rotate(False, speed)
             self.hr.rotate(True, speed)
             self.tl.rotate(False, speed)
