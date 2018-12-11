@@ -4,10 +4,10 @@ import socket
 import time
 import json
 import spidev
-# import serial
+import serial
 import qmc
-# import re
 import locator
+import filter
 
 isDebug = len(sys.argv) > 1
 
@@ -27,7 +27,8 @@ else:
 
 
     # Hardware Initializations
-    # ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=0.3)
+    ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=0.3)
+    f = filter.Filter(ser)
 
     fieldX = 6
     fieldY = 4
@@ -77,7 +78,7 @@ def GetLoc():
     x = lastLoc[0]
     y = lastLoc[1]
     t = 0
-    if not isDebug:
+    if (not isDebug) and f.lokeitid:
         try:
             res = loketyr.loc
             if not res == None:

@@ -2,6 +2,7 @@ import socket
 import threading
 import time
 import re
+import serial
 
 
 class Locator(threading.Thread):
@@ -21,6 +22,8 @@ class Locator(threading.Thread):
         self.pattern = re.compile(r'\^T([0-1])X(\d\.\d+)Y(\d.\d+)\$')
         self.loc = ('0', '0.0', '0.0')
 
+        self.ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=0.3)
+
 
     def run(self):
         while True:
@@ -31,4 +34,8 @@ class Locator(threading.Thread):
             if not res == None:
                 self.loc = res.groups()
                 print(self.loc)
+            raw = self.ser.readline()
+            raw = raw[:raw.rindex(b'$')]
+            msg = raw.decode(encoding='ascii')
+            print(msg)
             time.sleep(0.05)
