@@ -7,8 +7,8 @@ class Command(Enum):
     Stop = 0
     Forward = 1
     Backward = 2
-    LeftShift = 3
-    RightShift = 4
+    # LeftShift = 3
+    # RightShift = 4
     LeftRotate = 5
     RightRotate = 6
     IR = 10
