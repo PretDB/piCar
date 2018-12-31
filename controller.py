@@ -241,7 +241,7 @@ if __name__ == "__main__":    # {{{
     global com
     # Basic hardware initialization
     pwm = pca.PCA()    # Initialization of pca controller
-    pwm.setFreq(8000)
+    # pwm.setFreq(8000)
     pins = mcp.MCP(channel=0, addr=0)    # MCP initialization
 
     # Car initialization
