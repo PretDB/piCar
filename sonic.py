@@ -3,6 +3,7 @@ import pca
 import mcp
 import command
 import servo
+import time
 
 
 class Sonic:
