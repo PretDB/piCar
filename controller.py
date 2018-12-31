@@ -18,6 +18,8 @@ fire = False
 idleTime = 0.1
 
 
+# Attention, all external devices ( fire, ir, light )
+# are activated at low level.
 class FireFunc(threading.Thread):    # {{{
     def __init__(self, mcp, cchannel, dchannel):
         threading.Thread.__init__(self)
@@ -247,6 +249,7 @@ if __name__ == "__main__":    # {{{
     car.defaultSpeed = 0.2
 
     # wiringpi gpio initialization
+    # This is en pin of motor driver.
     wiringpi.wiringPiSetup()
     wiringpi.pinMode(28, wiringpi.OUTPUT)
     wiringpi.digitalWrite(28, wiringpi.HIGH)
