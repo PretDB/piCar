@@ -17,9 +17,6 @@ lastLoc = (0.1, 0.1)
 
 if isDebug:
     import random
-
-    id = 0
-
 else:
     spi = spidev.SpiDev()
     spi.open(0, 0)
@@ -33,7 +30,7 @@ else:
     fieldX = 6
     fieldY = 4
 
-    id = int(socket.gethostname())
+id = int(socket.gethostname())
 
 compass = qmc.QMC(True)
 
@@ -128,6 +125,7 @@ while True:
     print('')
     print(time.ctime(), 'count: ', heartbeatCount, )
     print('Loc: ', loc)
+    print(id)
 
     if not leg:
         time.sleep(0.3)
