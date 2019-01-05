@@ -109,7 +109,12 @@ while True:
     heartbeatCount = heartbeatCount + 1
 
     # Get location data
-    loc, leg = GetLoc()
+    # Debug mode:
+    loc = None
+    leg = False
+    if not isDebug:
+        loc, leg = GetLoc()
+
     ang = GetOri()
     if loc is not None:
         heartbeatPackage['Msg'] = {'position': loc, 'orientation': ang}
