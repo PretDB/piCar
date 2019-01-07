@@ -282,30 +282,34 @@ if __name__ == "__main__":    # {{{
 #     fireThread.start()    # }}}
 
     # Main loop    {{{
-    while True:
-        clientsocket, addr = server.accept()
-        print("client connected, address: ", str(addr), flush=True)
-
-        # Get data from this client until no data available
+    try:
         while True:
-            data = clientsocket.recv(1024).decode('utf-8')
-            if not data:
-                break
-            print(data, flush=True)
-            com, args = GetCommand(data)
-            speed = car.defaultSpeed
+            clientsocket, addr = server.accept()
+            print("client connected, address: ", str(addr), flush=True)
 
-            if args is not None:
-                # args = json.loads(args)
-                if args.keys().__contains__('Speed'):
-                    speed = args['Speed']
+            # Get data from this client until no data available
+            while True:
+                data = clientsocket.recv(1024).decode('utf-8')
+                if not data:
+                    break
+                print(data, flush=True)
+                com, args = GetCommand(data)
+                speed = car.defaultSpeed
 
-                if args.keys().__contains__('Fire'):
-                    fire= args['Fire']
-                pass
+                if args is not None:
+                    # args = json.loads(args)
+                    if args.keys().__contains__('Speed'):
+                        speed = args['Speed']
 
-            if com.value >= 0 and com.value <= 6:
-                car.carMove(com, speed)
+                    if args.keys().__contains__('Fire'):
+                        fire= args['Fire']
+                    pass
 
+                if com.value >= 0 and com.value <= 6:
+                    car.carMove(com, speed)
+    except BaseException:
+        wiringpi.wiringPiSetup()
+        wiringpi.pinMode(28, wiringpi.OUTPUT)
+        wiringpi.digitalWrite(28, wiringpi.LOW)
     # End of main loop    }}}
 # End of main func }}}
