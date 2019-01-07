@@ -57,10 +57,10 @@ class tracker(threading.Thread):
         img = self.readImg()
         post = self.preprocess(img)
 
-        a1 = post[0:post.shape[0] / 3, 0:post.shape[1] * 5 / 1]
-        a2 = post[0:post.shape[0] / 3, post.shape[1] * 11 / 16:post.shape[1]]
-        a3 = post[post.shape[0] / 3:post.shape[0] * 2 / 3]
-        a4 = post[post.shape[0] * 2 / 3:post.shape[0]]
+        a1 = post[0 : int(post.shape[0] / 3), 0 : int(post.shape[1] * 5 / 16)]
+        a2 = post[0 : int(post.shape[0] / 3), int(post.shape[1] * 11 / 16) : int(post.shape[1])]
+        a3 = post[int(post.shape[0] / 3) : int(post.shape[0] * 2 / 3), :]
+        a4 = post[int(post.shape[0] * 7 / 9) : int(post.shape[0]), :]
 
         a1_p = self.calc(a1)
         a2_p = self.calc(a2)
