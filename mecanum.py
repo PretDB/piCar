@@ -25,7 +25,7 @@ class Mecanum:
     def move(self, com):    # {{{
         self.carMove(com, self.defaultSpeed)
 
-        return    # }}}
+        # }}}
 
     def carMove(self, com, speed):    # {{{
         if not com == self.state and not com == Command.Stop:

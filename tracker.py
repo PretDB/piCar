@@ -19,6 +19,7 @@ class tracker(threading.Thread):
         r, img = self.cam.read()
         if r:
             self.lastImg = img
+        return self.lastImg
 
     def preprocess(self, img):
         # Down Sampling twice
@@ -40,9 +41,9 @@ class tracker(threading.Thread):
 
     # Calcuate the center and mass
     def calc(self, img):
-        post = self.preprocess(img)
-
-        center = (0, 0)  #
+        # post = self.preprocess(img)
+        post = img
+        center = [0, 0]  #
         m = 0
 
         mo = cv2.moments(post, True)
@@ -66,6 +67,7 @@ class tracker(threading.Thread):
         a2_p = self.calc(a2)
         a3_p = self.calc(a3)
         a4_p = self.calc(a4)
+        print(str(a1_p) + '\t' + str(a2_p) + '\t' + str(a3_p) + '\t' + str(a4_p))
 
         if abs(a3_p[1][1] - a4_p[1][1]) > 4:
             if a3_p[1][1] < a4_p[1][1]:
