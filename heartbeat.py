@@ -3,7 +3,6 @@ import sys
 import socket
 import time
 import json
-import spidev
 import serial
 import qmc
 import locator
@@ -17,11 +16,6 @@ fieldY = 1
 lastLoc = (0.1, 0.1)
 
 if not isDebug:
-    spi = spidev.SpiDev()
-    spi.open(0, 0)
-    spi.max_speed_hz = 5000
-
-
     # Hardware Initializations
     ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=0.3)
     # Filter should be treat as a thread
