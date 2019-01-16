@@ -7,6 +7,7 @@ import spidev
 import serial
 import qmc
 import locator
+import random
 import filter
 
 isDebug = len(sys.argv) > 1
@@ -15,9 +16,7 @@ fieldX = 1
 fieldY = 1
 lastLoc = (0.1, 0.1)
 
-if isDebug:
-    import random
-else:
+if not isDebug:
     spi = spidev.SpiDev()
     spi.open(0, 0)
     spi.max_speed_hz = 5000
@@ -25,6 +24,7 @@ else:
 
     # Hardware Initializations
     ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=0.3)
+    # Filter should be treat as a thread
     f = filter.Filter(ser)
 
     fieldX = 6
