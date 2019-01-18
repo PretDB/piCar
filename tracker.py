@@ -15,6 +15,12 @@ class tracker(threading.Thread):
         self.ele = cv2.getStructuringElement(cv2.MORPH_RECT, (25, 25))
         self.command = Command.Stop
 
+    def run(self):
+        while True:
+            self.command = self.getDir()
+
+        pass
+
     def readImg(self):
         r, img = self.cam.read()
         if r:
