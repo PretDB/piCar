@@ -18,13 +18,14 @@ class Mecanum:
         self.state = Command.Stop
 
         self.defaultSpeed = 0.2
+        self.shiftGain = 1.25
 
         return    # }}}
 
     def move(self, com):    # {{{
         self.carMove(com, self.defaultSpeed)
 
-        return    # }}}
+        # }}}
 
     def carMove(self, com, speed):    # {{{
         if not com == self.state and not com == Command.Stop:
@@ -45,30 +46,30 @@ class Mecanum:
             self.tr.rotate(True, speed)
             pass    # }}}
 
-        elif com == Command.LeftShift:    # {{{
+        elif com == Command.LeftRotate:    # {{{
             self.hl.rotate(True, speed)
             self.hr.rotate(False, speed)
             self.tl.rotate(False, speed)
             self.tr.rotate(True, speed)
             pass    # }}}
 
-        elif com == Command.RightShift:    # {{{
-            self.hl.rotate(False, speed)
-            self.hr.rotate(True, speed)
-            self.tl.rotate(True, speed)
-            self.tr.rotate(False, speed)
-            pass    # }}}
-
-        elif com == Command.LeftRotate:    # {{{
-            self.hl.rotate(True, speed)
-            self.hr.rotate(False, speed)
-            self.tl.rotate(True, speed)
-            self.tr.rotate(False, speed)
-            pass    # }}}
-
         elif com == Command.RightRotate:    # {{{
             self.hl.rotate(False, speed)
             self.hr.rotate(True, speed)
+            self.tl.rotate(True, speed)
+            self.tr.rotate(False, speed)
+            pass    # }}}
+
+        elif com == Command.LeftShift:    # {{{
+            self.hl.rotate(True, speed*self.shiftGain)
+            self.hr.rotate(False, speed*self.shiftGain)
+            self.tl.rotate(True, speed)
+            self.tr.rotate(False, speed)
+            pass    # }}}
+
+        elif com == Command.RightShift:    # {{{
+            self.hl.rotate(False, speed*self.shiftGain)
+            self.hr.rotate(True, speed*self.shiftGain)
             self.tl.rotate(False, speed)
             self.tr.rotate(True, speed)
             pass    # }}}

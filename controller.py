@@ -18,6 +18,8 @@ fire = False
 idleTime = 0.1
 
 
+# Attention, all external devices ( fire, ir, light )
+# are activated at low level.
 class FireFunc(threading.Thread):    # {{{
     def __init__(self, mcp, cchannel, dchannel):
         threading.Thread.__init__(self)
@@ -50,14 +52,18 @@ class FireFunc(threading.Thread):    # {{{
 
 
 class IRFunc(threading.Thread):    # {{{
-    def __init__(self, mcp, l, r):
+    def __init__(self, mcp, ll, hl, hr, rr):
         threading.Thread.__init__(self)
         self.mcp = mcp
-        self.lchannel = l
-        self.rchannel = r
+        self.llchannel = ll
+        self.hlchannel = hl
+        self.hrchannel = hr
+        self.rrchannel = rr
 
-        self.mcp.pinMode(self.lchannel, 1)
-        self.mcp.pinMode(self.rchannel, 1)
+        self.mcp.pinMode(self.llchannel, 1)
+        self.mcp.pinMode(self.hlchannel, 1)
+        self.mcp.pinMode(self.hrchannel, 1)
+        self.mcp.pinMode(self.rrchannel, 1)
 
         pass
 
@@ -68,15 +74,20 @@ class IRFunc(threading.Thread):    # {{{
 
         while True:
             if com == command.Command.IR:
-                lstate = self.mcp.digitalRead(self.lchannel)
-                rstate = self.mcp.digitalRead(self.rchannel)
+                llstate = self.mcp.digitalRead(self.llchannel)
+                hlstate = self.mcp.digitalRead(self.hlchannel)
+                hrstate = self.mcp.digitalRead(self.hrchannel)
+                rrstate = self.mcp.digitalRead(self.rrchannel)
 
-                if lstate == 0:
-                    car.carMove(command.Command.RightRotate)
-                elif rstate == 0:
-                    car.carMove(command.Command.LeftRotate)
+                if llstate == 0 or hlstate == 0:
+                    car.move(command.Command.RightRotate)
+                elif hrstate == 0 or rrstate == 0:
+                    car.move(command.Command.LeftRotate)
+                elif hlstate == 0 and hrstate == 0:
+                    car.move(command.Command.RightRotate)
+                    time.sleep(5)
                 else:
-                    car.carMove(command.Command.Forward)
+                    car.move(command.Command.Forward)
 
             time.sleep(idleTime)
 
@@ -94,6 +105,7 @@ class SonicFunc(threading.Thread):    # {{{
 
         self.mcp.pinMode(self.trigPin, 0)
         self.mcp.pinMode(self.echoPin, 1)
+        self.servo.setAngle(90)
 
         pass
 
@@ -132,12 +144,12 @@ class SonicFunc(threading.Thread):    # {{{
                 rd = self.readCM()
 
                 if cd > 30 or cd < 10:
-                    car.carMove(command.Command.Forward)
+                    car.move(command.Command.Forward)
                 else:
                     if ld > rd:
-                        car.carMove(command.Command.LeftRotate)
+                        car.move(command.Command.LeftRotate)
                     else:
-                        car.carMove(command.Command.RightRotate)
+                        car.move(command.Command.RightRotate)
 
                     time.sleep(idleTime * 10)
 
@@ -148,19 +160,17 @@ class SonicFunc(threading.Thread):    # {{{
 
 
 class LightFunc(threading.Thread):    # {{{
-    def __init__(self, mcp, front, left, right, rear):
+    def __init__(self, mcp, front, left, right):
         threading.Thread.__init__(self)
 
         self.mcp = mcp
         self.front = front
         self.left = left
         self.right = right
-        self.rear = rear
 
         self.mcp.pinMode(self.front, 1)
         self.mcp.pinMode(self.left, 1)
         self.mcp.pinMode(self.right, 1)
-        self.mcp.pinMode(self.rear, 1)
 
         pass
 
@@ -172,23 +182,23 @@ class LightFunc(threading.Thread):    # {{{
         while True:
             if com == command.Command.Light:
                 if self.mcp.digitalRead(self.front) == 0:
-                    car.carMove(command.Command.Forward)
+                    car.move(command.Command.Forward)
+                    print('f')
                     continue
 
                 elif self.mcp.digitalRead(self.left) == 0:
-                    car.carMove(command.Command.LeftRotate)
+                    car.move(command.Command.LeftRotate)
+                    print('l')
                     continue
 
                 elif self.mcp.digitalRead(self.right) == 0:
-                    car.carMove(command.Command.RightRotate)
-                    continue
-
-                elif self.mcp.digitalRead(self.rear) == 0:
-                    car.carMove(command.Command.Backward)
+                    car.move(command.Command.RightRotate)
+                    print('r')
                     continue
 
                 else:
-                    car.carMove(command.Command.Stop)
+                    car.move(command.Command.Stop)
+                    print('stop')
 
             time.sleep(idleTime)
 
@@ -197,8 +207,8 @@ class LightFunc(threading.Thread):    # {{{
 
 
 class TrackFunc(threading.Thread):    # {{{
-    def __init__(self):
-        threading.Thread.__init__(self, videoDev)
+    def __init__(self, videoDev):
+        threading.Thread.__init__(self)
 
         self.trakr = tracker.tracker(videoDev)
 
@@ -212,7 +222,7 @@ class TrackFunc(threading.Thread):    # {{{
         while True:
             if com == command.Command.Track:
                 d = self.trakr.getDir()
-                car.carMove(d)
+                car.move(d)
 
             time.sleep(idleTime)
 
@@ -239,7 +249,7 @@ if __name__ == "__main__":    # {{{
     global com
     # Basic hardware initialization
     pwm = pca.PCA()    # Initialization of pca controller
-    pwm.setFreq(8000)
+    # pwm.setFreq(8000)
     pins = mcp.MCP(channel=0, addr=0)    # MCP initialization
 
     # Car initialization
@@ -247,6 +257,7 @@ if __name__ == "__main__":    # {{{
     car.defaultSpeed = 0.2
 
     # wiringpi gpio initialization
+    # This is en pin of motor driver.
     wiringpi.wiringPiSetup()
     wiringpi.pinMode(28, wiringpi.OUTPUT)
     wiringpi.digitalWrite(28, wiringpi.HIGH)
@@ -266,43 +277,47 @@ if __name__ == "__main__":    # {{{
     server.listen(5)
 
     # Other thread initialization    {{{
-#     trackThread = TrackFunc()
-#     irThread = IRFunc()
-#     lightThread = LightFunc()
-#     sonicThread = SonicFunc()
-#     fireThread = FireFunc()
+    trackThread = TrackFunc('/dev/tracker')
+    irThread = IRFunc(pins, 8, 7, 6, 5)
+    lightThread = LightFunc(pins, 10, 9, 11)
+    sonicThread = SonicFunc(pwm, 4, pins, 15, 16)
+    fireThread = FireFunc(pins, 13, 12)
 
-#     trackThread.start()
-#     irThread.start()
-#     lightThread.start()
-#     sonicThread.start()
-#     fireThread.start()    # }}}
+    trackThread.start()
+    irThread.start()
+    lightThread.start()
+    sonicThread.start()
+    fireThread.start()    # }}}
 
     # Main loop    {{{
-    while True:
-        clientsocket, addr = server.accept()
-        print("client connected, address: ", str(addr), flush=True)
-
-        # Get data from this client until no data available
+    try:
         while True:
-            data = clientsocket.recv(1024).decode('utf-8')
-            if not data:
-                break
-            print(data, flush=True)
-            com, args = GetCommand(data)
-            speed = car.defaultSpeed
+            clientsocket, addr = server.accept()
+            print("client connected, address: ", str(addr), flush=True)
 
-            if args is not None:
-                # args = json.loads(args)
-                if args.keys().__contains__('Speed'):
-                    speed = args['Speed']
+            # Get data from this client until no data available
+            while True:
+                data = clientsocket.recv(1024).decode('utf-8')
+                if not data:
+                    break
+                print(data, flush=True)
+                com, args = GetCommand(data)
+                speed = car.defaultSpeed
 
-                if args.keys().__contains__('Fire'):
-                    fire= args['Fire']
-                pass
+                if args is not None:
+                    # args = json.loads(args)
+                    if args.keys().__contains__('Speed'):
+                        speed = args['Speed']
 
-            if com.value >= 0 and com.value <= 6:
-                car.carMove(com, speed)
+                    if args.keys().__contains__('Fire'):
+                        fire= args['Fire']
+                    pass
 
+                if com.value >= 0 and com.value <= 6:
+                    car.carMove(com, speed)
+    except BaseException:
+        wiringpi.wiringPiSetup()
+        wiringpi.pinMode(28, wiringpi.OUTPUT)
+        wiringpi.digitalWrite(28, wiringpi.LOW)
     # End of main loop    }}}
 # End of main func }}}
