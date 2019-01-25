@@ -1,0 +1,16 @@
+import threading
+import time
+import current_cmd
+
+
+class carFunc(threading.Thread):
+    def __init__(self, car):
+        threading.Thread.__init__(self)
+        self.car = car
+        pass
+
+    def run(self):
+        while True:
+            self.car.carMove(current_cmd.com, current_cmd.args['Speed'])
+            time.sleep(0.02)
+        pass
