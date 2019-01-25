@@ -83,18 +83,18 @@ class tracker(threading.Thread):
         print(str(a1_p) + '\t' + str(a2_p) + '\t' + str(a3_p) + '\t' + str(a4_p))
 
         if a1_p[0] > 200 and a2_p[0] > 200:
-            self.command = command.Command.Stop
-        elif abs((a3_p[1][0] + a4_p[1][0]) / 2 - dil.shape[1] / 2) > dil.shape[1] * 0.2:
-            if (a3_p[1][0] + a4_p[1][0]) / 2 < dil.shape[1] / 2:
-                self.command = command.Command.LeftShift
+            self.command = Command.Stop
+        elif abs((a3_p[1][0] + a4_p[1][0]) / 2 - post.shape[1] / 2) > post.shape[1] * 0.2:
+            if (a3_p[1][0] + a4_p[1][0]) / 2 < post.shape[1] / 2:
+                self.command = Command.LeftShift
             else:
-                self.command = command.Command.RightShift
+                self.command = Command.RightShift
         elif abs(a3_p[1][0] - a4_p[1][0]) > 4:
             if a3_p[1][0] < a4_p[1][0]:
-                self.command = command.Command.LeftRotate
+                self.command = Command.LeftRotate
             else:
-                self.command = command.Command.RightRotate
+                self.command = Command.RightRotate
         else:
-            self.command = command.Command.Forward
+            self.command = Command.Forward
 
         return self.command
