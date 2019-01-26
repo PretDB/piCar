@@ -1,9 +1,11 @@
 import threading
 import time
-import mcp
+import current_cmd
+from command import Command
 
 
 class FireFunc(threading.Thread):    # {{{
+# Init {{{
     def __init__(self, m, cchannel, dchannel):
         threading.Thread.__init__(self)
         self.m = m
@@ -14,21 +16,21 @@ class FireFunc(threading.Thread):    # {{{
         self.m.pinMode(self.detect, 1)
 
         pass
+# }}}
 
+    # Run, main thread loop {{{
     def run(self):
-        global com
-        global fire
-        global idleTime
-
         while True:
-            if fire:
+            if current_cmd.com == Command.FireDetect:
                 if self.m.digitalRead(self.detect) == 0:
                     self.m.digitalWrite(self.control, 1)
                     time.sleep(5)
                 else:
                     self.m.digitalWrite(self.control, 0)
 
-            time.sleep(idleTime)
+            self.m.digitalWrite(self.control, 0)
+            time.sleep(0.1)
 
         pass
+    # }}}
 # }}}

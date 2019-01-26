@@ -1,13 +1,15 @@
-import mcp
 import time
 import threading
-import command
+import current_cmd
+from command import Command
 
 
 class IRFunc(threading.Thread):    # {{{
-    def __init__(self, m, ll, hl, hr, rr):
+# Init {{{
+    def __init__(self, m, ll, hl, hr, rr, car):
         threading.Thread.__init__(self)
         self.m = m
+        self.car = car
         self.llchannel = ll
         self.hlchannel = hl
         self.hrchannel = hr
@@ -19,30 +21,26 @@ class IRFunc(threading.Thread):    # {{{
         self.m.pinMode(self.rrchannel, 1)
 
         pass
+# }}}
 
     def run(self):
-        global com
-        global idleTime
-        global car
-
         while True:
-            if com == command.Command.IR:
+            if current_cmd.com == Command.IR or current_cmd.com == Command.Sonic:
                 llstate = self.m.digitalRead(self.llchannel)
                 hlstate = self.m.digitalRead(self.hlchannel)
                 hrstate = self.m.digitalRead(self.hrchannel)
                 rrstate = self.m.digitalRead(self.rrchannel)
 
                 if llstate == 0 or hlstate == 0:
-                    car.move(command.Command.RightRotate)
+                    self.car.move(Command.RightRotate)
                 elif hrstate == 0 or rrstate == 0:
-                    car.move(command.Command.LeftRotate)
+                    self.car.move(Command.LeftRotate)
                 elif hlstate == 0 and hrstate == 0:
-                    car.move(command.Command.RightRotate)
-                    time.sleep(5)
+                    self.car.move(Command.RightRotate)
                 else:
-                    car.move(command.Command.Forward)
+                    self.car.move(Command.Forward)
 
-            time.sleep(idleTime)
+            time.sleep(0.1)
 
         pass
 # }}}

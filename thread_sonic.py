@@ -3,22 +3,28 @@ import time
 import servo
 import command
 import wiringpi
+import current_cmd
+from command import Command
 
 
 class SonicFunc(threading.Thread):    # {{{
-    def __init__(self, pca, channel, mcp, echo, trig):
+    # Init {{{
+    def __init__(self, pca, channel, mcp, echo, trig, car):
         threading.Thread.__init__(self)
         self.servo = servo.Servo(pca, channel)
         self.mcp = mcp
         self.trigPin = trig
         self.echoPin = echo
+        self.car = car
 
         self.mcp.pinMode(self.trigPin, 0)
         self.mcp.pinMode(self.echoPin, 1)
         self.servo.setAngle(90)
 
         pass
+    # }}}
 
+    # Read distance in cm {{{
     def readCM(self):
         self.mcp.digitalWrite(self.trigPin, wiringpi.HIGH)
         time.sleep(0.00001)
@@ -35,14 +41,12 @@ class SonicFunc(threading.Thread):    # {{{
         d = t * 343 / 2 * 100
 
         return d
+    # }}}
 
-    def run(self):    # Task loop {{{
-        global com
-        global idleTime
-        global car
-
+    # Run, main thread loop {{{
+    def run(self):
         while True:
-            if com == command.Command.Sonic:
+            if current_cmd.com == Command.Sonic:
                 self.servo.setAngle(135)
                 time.sleep(0.5)
                 ld = self.readCM()
@@ -53,17 +57,14 @@ class SonicFunc(threading.Thread):    # {{{
                 time.sleep(0.5)
                 rd = self.readCM()
 
-                if cd > 30 or cd < 10:
-                    car.move(command.Command.Forward)
+                if cd > 40.0:
+                    self.car.move(command.Command.Forward)
                 else:
                     if ld > rd:
-                        car.move(command.Command.LeftRotate)
+                        self.car.move(Command.LeftRotate)
                     else:
-                        car.move(command.Command.RightRotate)
-
-                    time.sleep(idleTime * 10)
-
-            time.sleep(idleTime)
-
-        pass    # }}}
+                        self.car.move(Command.RightRotate)
+            time.sleep(2)
+        pass
+    # }}}
 # }}}

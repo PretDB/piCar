@@ -1,51 +1,47 @@
 import threading
 import time
-import command
-import mcp
+import current_cmd
+from command import Command
 
 
 class LightFunc(threading.Thread):    # {{{
-    def __init__(self, m, front, left, right):
+    # Init {{{
+    def __init__(self, m, front, left, right, car):
         threading.Thread.__init__(self)
 
         self.m = m
         self.front = front
         self.left = left
         self.right = right
+        self.car = car
 
         self.m.pinMode(self.front, 1)
         self.m.pinMode(self.left, 1)
         self.m.pinMode(self.right, 1)
 
         pass
+    # }}}
 
+    # Run, main thread loop {{{
     def run(self):
-        global com
-        global idleTime
-        global car
-
         while True:
-            if com == command.Command.Light:
+            if current_cmd.com == Command.Light:
                 if self.m.digitalRead(self.front) == 0:
-                    car.move(command.Command.Forward)
-                    print('f')
+                    self.car.move(Command.Forward)
                     continue
 
                 elif self.m.digitalRead(self.left) == 0:
-                    car.move(command.Command.LeftRotate)
-                    print('l')
+                    self.car.move(Command.LeftRotate)
                     continue
 
                 elif self.m.digitalRead(self.right) == 0:
-                    car.move(command.Command.RightRotate)
-                    print('r')
+                    self.car.move(Command.RightRotate)
                     continue
 
                 else:
-                    car.move(command.Command.Stop)
-                    print('stop')
-
-            time.sleep(idleTime)
+                    self.car.move(Command.Stop)
+            time.sleep(0.1)
 
         pass
+    # }}}
 # }}}
