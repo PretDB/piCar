@@ -11,7 +11,8 @@ import thread_tracker
 import thread_light
 import thread_car
 import sys
-from server import app
+import server
+from multiprocessing import Value
 # imports}}}
 
 
@@ -38,37 +39,42 @@ if __name__ == "__main__":
         # }}}
 
         # Process initialization    {{{
-        trackThread = thread_tracker.tracker('/dev/tracker', car)
-        irThread = thread_ir.IRFunc(pins, 8, 7, 6, 5, car)
-        lightThread = thread_light.LightFunc(pins, 10, 9, 11, car)
-        sonicThread = thread_sonic.SonicFunc(pwm, 4, pins, 15, 16, car)
-        fireThread = thread_fire.FireFunc(pins, 13, 12)
-        carThread = thread_car.carFunc(car)
+        com = Value('I', 0)
+        fire = Value('I', 0)
+        speed = Value('f', 0.0)
+        trackThread = thread_tracker.tracker('/dev/tracker', car, com)
+        irThread = thread_ir.IRFunc(pins, 8, 7, 6, 5, car, com)
+        lightThread = thread_light.LightFunc(pins, 10, 9, 11, car, com)
+        sonicThread = thread_sonic.SonicFunc(pwm, 4, pins, 15, 16, car, com)
+        fireThread = thread_fire.FireFunc(pins, 13, 12, com, fire)
+        carThread = thread_car.carFunc(car, com, speed)
+        svr = server.server(com, fire, speed)
 
         trackThread.start()
         irThread.start()
         lightThread.start()
         sonicThread.start()
         fireThread.start()
-        carThread.start()    # }}}
+        carThread.start()
+        svr.start()    # }}}
 
         # Run server {{{
-        app.run(host='0.0.0.0', port='6688')
+        # app.run(host='0.0.0.0', port='6688')
         # }}}
 
-        trackThread.terminate()
-        irThread.terminate()
-        lightThread.terminate()
-        sonicThread.terminate()
-        fireThread.terminate()
-        carThread.terminate()
+        # trackThread.terminate()
+        # irThread.terminate()
+        # lightThread.terminate()
+        # sonicThread.terminate()
+        # fireThread.terminate()
+        # carThread.terminate()
 
-        trackThread.join()
-        irThread.join()
-        lightThread.join()
-        sonicThread.join()
-        fireThread.join()
-        carThread.join()
+        # trackThread.join()
+        # irThread.join()
+        # lightThread.join()
+        # sonicThread.join()
+        # fireThread.join()
+        # carThread.join()
 
     except(BaseException):
         wiringpi.wiringPiSetup()
