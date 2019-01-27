@@ -9,9 +9,9 @@ from command import Command
 
 class tracker(mp.Process):
 # Init {{{
-    def __init__(self, videoDev, car, com):
+    def __init__(self, car, com):
         mp.Process.__init__(self)
-        self.cam = cv2.VideoCapture(videoDev)
+        self.cam = cv2.VideoCapture(0)
         self.ele = cv2.getStructuringElement(cv2.MORPH_RECT, (10, 10))
         self.command = Command.Stop
         self.car = car
@@ -38,9 +38,8 @@ class tracker(mp.Process):
         while True:
             c = Command(self.com.value)
             if c == Command.Track:
-                self.command = self.getDir()
-                self.car.move(self.command)
-            time.sleep(0.1)
+                print('tracker running')
+            time.sleep(1)
         pass
     # }}}
 

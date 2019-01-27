@@ -26,7 +26,7 @@ class carFunc(mp.Process):
                 self.car.carMove(c, s)
             except(BaseException):
                 continue
-            time.sleep(0.5)
+            time.sleep(1)
         pass
     # }}}
 

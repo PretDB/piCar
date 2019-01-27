@@ -1,27 +1,15 @@
 import multiprocessing as mp
 import time
-import servo
-import command
-import wiringpi
 # import current_cmd
 from command import Command
 
 
 class SonicFunc(mp.Process):    # {{{
     # Init {{{
-    def __init__(self, pca, channel, mcp, echo, trig, car, com):
+    def __init__(self, car, com):
         mp.Process.__init__(self)
-        self.servo = servo.Servo(pca, channel)
-        self.mcp = mcp
-        self.trigPin = trig
-        self.echoPin = echo
-        self.car = car
-
-        self.mcp.pinMode(self.trigPin, 0)
-        self.mcp.pinMode(self.echoPin, 1)
-        self.servo.setAngle(90)
-
         self.com = com
+        self.car = car
 
         pass
     # }}}
@@ -50,23 +38,7 @@ class SonicFunc(mp.Process):    # {{{
         while True:
             c = Command(self.com.value)
             if c == Command.Sonic:
-                self.servo.setAngle(135)
-                time.sleep(0.5)
-                ld = self.readCM()
-                self.servo.setAngle(90)
-                time.sleep(0.5)
-                cd = self.readCM()
-                self.servo.setAngle(45)
-                time.sleep(0.5)
-                rd = self.readCM()
-
-                if cd > 40.0:
-                    self.car.move(command.Command.Forward)
-                else:
-                    if ld > rd:
-                        self.car.move(Command.LeftRotate)
-                    else:
-                        self.car.move(Command.RightRotate)
+                print('sonic running')
             time.sleep(2)
         pass
     # }}}
