@@ -120,3 +120,7 @@ class tracker(threading.Thread):
 
         return self.command
     # }}}
+    # Stop {{{
+    def stop(self):
+        self.running = False
+    # }}}

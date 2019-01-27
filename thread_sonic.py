@@ -67,4 +67,8 @@ class SonicFunc(threading.Thread):    # {{{
             time.sleep(2)
         pass
     # }}}
+    # Stop {{{
+    def stop(self):
+        self.running = False
+    # }}}
 # }}}

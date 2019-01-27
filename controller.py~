@@ -1,64 +1,78 @@
 #!/usr/bin/python3
-
-import socket
-import threading
+# imports {{{
 import wiringpi
-import json
+import mecanum
+import pca
+import mcp
+import thread_sonic
+import thread_ir
+import thread_fire
+import thread_tracker
+import thread_light
+import thread_car
+import sys
+from server import app
+# imports}}}
 
 
-def GetCommand(jsonString):
-    jsonObj = json.loads(jsonString)
-    if jsonObj['Type'] == 'instruction'and jsonObj['FromRole'] == 'Controller':
-        com = jsonObj['Command']
-        args = jsonObj['Command']
-    return com, args
+# Attention, all external devices ( fire, ir, light )
+# are activated at low level.
 
-
-def SendCommand(com):
-    pass
-
-
-class trackerThread(threading.Thread):
-    def __init__(self):
-        pass
-
-    def run(self):
-        pass
-
-
+# The main program, which initiate the hardware and some threads.{{{
 if __name__ == "__main__":
-    # Prepare network connection
-    test = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    test.connect(('8.8.8.8', 80))
-    localIP = test.getsockname()[0]
-    test.close()
+    try:
+        # Basic hardware initialization{{{
+        pwm = pca.PCA()    # Initialization of pca controller
+        # pwm.setFreq(8000)
+        pins = mcp.MCP(channel=0, addr=0)    # MCP initialization
 
-    id = int(socket.gethostname())
-    tracker = trackerThread()
+        # Car wheel initialization
+        car = mecanum.Mecanum(pwm, 0, 1, 2, 3, pins, 1, 2, 3, 4)
+        car.defaultSpeed = 0.2
 
-    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    port = 6688
+        # Wiringpi gpio initialization
+        # This is en pin of motor driver.
+        wiringpi.wiringPiSetup()
+        wiringpi.pinMode(28, wiringpi.OUTPUT)
+        wiringpi.digitalWrite(28, wiringpi.HIGH)
+        # }}}
 
-    server.bind((localIP, port))
-    server.listen(5)
+        # Threads initialization    {{{
+        trackThread = thread_tracker.tracker('/dev/tracker', car)
+        irThread = thread_ir.IRFunc(pins, 8, 7, 6, 5, car)
+        lightThread = thread_light.LightFunc(pins, 10, 9, 11, car)
+        sonicThread = thread_sonic.SonicFunc(pwm, 4, pins, 15, 16, car)
+        fireThread = thread_fire.FireFunc(pins, 13, 12)
+        carThread = thread_car.carFunc(car)
 
-    ser = wiringpi.serialOpen('/dev/ttyAMA0', 9600)
+        trackThread.start()
+        irThread.start()
+        lightThread.start()
+        sonicThread.start()
+        fireThread.start()    # }}}
 
-    mode = 0
+        # Run server {{{
+        app.run(port='6688')
+        trackThread.stop()
+        irThread.stop()
+        lightThread.stop()
+        sonicThread.stop()
+        fireThread.stop()
+        carThread.stop()
 
-    # Main loop
-    while True:
-        clientsocket, addr = server.accept()
-        print("client connected, address: ", str(addr), flush=True)
+        trackThread.join()
+        irThread.join()
+        lightThread.join()
+        sonicThread.join()
+        fireThread.join()
+        carThread.join()
+        # }}}
 
-        # Get data from this client until no data available
-        while True:
-            data = clientsocket.recv(1024).decode('utf-8')
-            if not data:
-                break
-            print(data, flush=True)
-            com, args = GetCommand(data)
+    except(BaseException):
+        wiringpi.wiringPiSetup()
+        wiringpi.pinMode(28, wiringpi.OUTPUT)
+        wiringpi.digitalWrite(28, wiringpi.LOW)
 
-            if not com == 1000:
-                wiringpi.serialPutchar(ser, com)
+        sys.exit(-1)
 
+# End of main func }}}

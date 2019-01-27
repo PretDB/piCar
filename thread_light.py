@@ -44,4 +44,8 @@ class LightFunc(threading.Thread):    # {{{
 
         pass
     # }}}
+    # Stop {{{
+    def stop(self):
+        self.running = False
+    # }}}
 # }}}

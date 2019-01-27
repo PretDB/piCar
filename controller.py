@@ -55,6 +55,20 @@ if __name__ == "__main__":
         app.run(port='6688')
         # }}}
 
+        trackThread.stop()
+        irThread.stop()
+        lightThread.stop()
+        sonicThread.stop()
+        fireThread.stop()
+        carThread.stop()
+
+        trackThread.join()
+        irThread.join()
+        lightThread.join()
+        sonicThread.join()
+        fireThread.join()
+        carThread.join()
+
     except(BaseException):
         wiringpi.wiringPiSetup()
         wiringpi.pinMode(28, wiringpi.OUTPUT)

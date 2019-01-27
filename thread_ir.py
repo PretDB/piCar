@@ -5,7 +5,7 @@ from command import Command
 
 
 class IRFunc(threading.Thread):    # {{{
-# Init {{{
+    # Init {{{
     def __init__(self, m, ll, hl, hr, rr, car):
         threading.Thread.__init__(self)
         self.m = m
@@ -21,8 +21,9 @@ class IRFunc(threading.Thread):    # {{{
         self.m.pinMode(self.rrchannel, 1)
 
         pass
-# }}}
+    # }}}
 
+    # Run, main thread loop {{{
     def run(self):
         while True:
             if current_cmd.com == Command.IR or current_cmd.com == Command.Sonic:
@@ -43,4 +44,9 @@ class IRFunc(threading.Thread):    # {{{
             time.sleep(0.1)
 
         pass
+    # }}}
+    # Stop {{{
+    def stop(self):
+        self.running = False
+    # }}}
 # }}}

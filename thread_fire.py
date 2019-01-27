@@ -33,4 +33,8 @@ class FireFunc(threading.Thread):    # {{{
 
         pass
     # }}}
+    # Stop {{{
+    def stop(self):
+        self.running = False
+    # }}}
 # }}}
