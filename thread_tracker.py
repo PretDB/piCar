@@ -2,19 +2,21 @@
 
 import cv2
 import multiprocessing as mp
-import current_cmd
+# import current_cmd
 import time
 from command import Command
 
 
 class tracker(mp.Process):
 # Init {{{
-    def __init__(self, videoDev, car):
+    def __init__(self, videoDev, car, com):
         mp.Process.__init__(self)
         self.cam = cv2.VideoCapture(videoDev)
         self.ele = cv2.getStructuringElement(cv2.MORPH_RECT, (10, 10))
         self.command = Command.Stop
         self.car = car
+
+        self.com = com
 
         tmpImg = self.readImg()
         post = self.preprocess(tmpImg)
@@ -34,7 +36,8 @@ class tracker(mp.Process):
     # to car.
     def run(self):
         while True:
-            if current_cmd.com == Command.Track:
+            c = Command(self.com.value)
+            if c == Command.Track:
                 self.command = self.getDir()
                 self.car.move(self.command)
             time.sleep(0.1)

@@ -3,13 +3,13 @@ import time
 import servo
 import command
 import wiringpi
-import current_cmd
+# import current_cmd
 from command import Command
 
 
 class SonicFunc(mp.Process):    # {{{
     # Init {{{
-    def __init__(self, pca, channel, mcp, echo, trig, car):
+    def __init__(self, pca, channel, mcp, echo, trig, car, com):
         mp.Process.__init__(self)
         self.servo = servo.Servo(pca, channel)
         self.mcp = mcp
@@ -20,6 +20,8 @@ class SonicFunc(mp.Process):    # {{{
         self.mcp.pinMode(self.trigPin, 0)
         self.mcp.pinMode(self.echoPin, 1)
         self.servo.setAngle(90)
+
+        self.com = com
 
         pass
     # }}}
@@ -46,7 +48,8 @@ class SonicFunc(mp.Process):    # {{{
     # Run, main thread loop {{{
     def run(self):
         while True:
-            if current_cmd.com == Command.Sonic:
+            c = Command(self.com.value)
+            if c == Command.Sonic:
                 self.servo.setAngle(135)
                 time.sleep(0.5)
                 ld = self.readCM()

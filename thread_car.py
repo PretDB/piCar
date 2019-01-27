@@ -1,14 +1,17 @@
 import multiprocessing as mp
 import time
-import current_cmd
+# import current_cmd
+import command
 
 
 class carFunc(mp.Process):
     # Init {{{
-    def __init__(self, car):
+    def __init__(self, car, com, speed):
         mp.Process.__init__(self)
         self.car = car
         self.running = True
+        self.com = com
+        self.speed = speed
         pass
     # }}}
 
@@ -18,7 +21,9 @@ class carFunc(mp.Process):
     def run(self):
         while self.running:
             try:
-                self.car.carMove(current_cmd.com, current_cmd.args['Speed'])
+                c = command.Command(self.com.value)
+                s = self.speed.value
+                self.car.carMove(c, s)
             except(BaseException):
                 continue
             time.sleep(0.5)

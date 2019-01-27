@@ -1,12 +1,12 @@
 import time
 import multiprocessing as mp
-import current_cmd
+# import current_cmd
 from command import Command
 
 
 class IRFunc(mp.Process):    # {{{
     # Init {{{
-    def __init__(self, m, ll, hl, hr, rr, car):
+    def __init__(self, m, ll, hl, hr, rr, car, com):
         mp.Process.__init__(self)
         self.m = m
         self.car = car
@@ -20,13 +20,16 @@ class IRFunc(mp.Process):    # {{{
         self.m.pinMode(self.hrchannel, 1)
         self.m.pinMode(self.rrchannel, 1)
 
+        self.com = com
+
         pass
     # }}}
 
     # Run, main thread loop {{{
     def run(self):
         while True:
-            if current_cmd.com == Command.IR or current_cmd.com == Command.Sonic:
+            c= Command(self.com.value)
+            if c == Command.IR or c == Command.Sonic:
                 llstate = self.m.digitalRead(self.llchannel)
                 hlstate = self.m.digitalRead(self.hlchannel)
                 hrstate = self.m.digitalRead(self.hrchannel)
