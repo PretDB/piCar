@@ -19,4 +19,5 @@ def SetCommand(inCommingJson):
         if inCommingJson['FromRole'] == 'Controller':
             current_cmd.com = command.Command(int(inCommingJson['Command']))
             current_cmd.args = inCommingJson['Args']
+            print(current_cmd.com)
     pass

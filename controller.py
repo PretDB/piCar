@@ -49,10 +49,11 @@ if __name__ == "__main__":
         irThread.start()
         lightThread.start()
         sonicThread.start()
-        fireThread.start()    # }}}
+        fireThread.start()
+        carThread.start()    # }}}
 
         # Run server {{{
-        app.run(port='6688')
+        app.run(host='0.0.0.0', port='6688')
         # }}}
 
         trackThread.stop()

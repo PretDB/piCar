@@ -17,8 +17,11 @@ class carFunc(threading.Thread):
     # the car ( mecanum ) will process it correctly.
     def run(self):
         while self.running:
-            self.car.carMove(current_cmd.com, current_cmd.args['Speed'])
-            time.sleep(0.02)
+            try:
+                self.car.carMove(current_cmd.com, current_cmd.args['Speed'])
+            except(BaseException):
+                continue
+            time.sleep(0.5)
         pass
     # }}}
 
