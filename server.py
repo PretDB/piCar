@@ -29,6 +29,7 @@ class server(mp.Process):
                     self.fire.value = int(inCommingJson['Args']['Speed'])
                     print('com: ', command.Command(self.com.value), '\tspeed: ', self.speed.value, '\tfire: ', bool(self.fire.value))
             pass
+        self.app.run(host='0.0.0.0', port=6688)
 
         pass
 

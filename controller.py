@@ -69,12 +69,12 @@ if __name__ == "__main__":
         # fireThread.terminate()
         # carThread.terminate()
 
-        # trackThread.join()
-        # irThread.join()
-        # lightThread.join()
-        # sonicThread.join()
-        # fireThread.join()
-        # carThread.join()
+        trackThread.join()
+        irThread.join()
+        lightThread.join()
+        sonicThread.join()
+        fireThread.join()
+        carThread.join()
 
     except(BaseException):
         wiringpi.wiringPiSetup()
