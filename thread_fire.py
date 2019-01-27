@@ -1,13 +1,13 @@
-import threading
+import multiprocessing as mp
 import time
 import current_cmd
 from command import Command
 
 
-class FireFunc(threading.Thread):    # {{{
+class FireFunc(mp.Process):    # {{{
 # Init {{{
     def __init__(self, m, cchannel, dchannel):
-        threading.Thread.__init__(self)
+        mp.Process.__init__(self)
         self.m = m
         self.control = cchannel
         self.detect = dchannel

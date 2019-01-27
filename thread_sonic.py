@@ -1,4 +1,4 @@
-import threading
+import multiprocessing as mp
 import time
 import servo
 import command
@@ -7,10 +7,10 @@ import current_cmd
 from command import Command
 
 
-class SonicFunc(threading.Thread):    # {{{
+class SonicFunc(mp.Process):    # {{{
     # Init {{{
     def __init__(self, pca, channel, mcp, echo, trig, car):
-        threading.Thread.__init__(self)
+        mp.Process.__init__(self)
         self.servo = servo.Servo(pca, channel)
         self.mcp = mcp
         self.trigPin = trig

@@ -1,12 +1,12 @@
-import threading
+import multiprocessing as mp
 import time
 import current_cmd
 
 
-class carFunc(threading.Thread):
+class carFunc(mp.Process):
     # Init {{{
     def __init__(self, car):
-        threading.Thread.__init__(self)
+        mp.Process.__init__(self)
         self.car = car
         self.running = True
         pass

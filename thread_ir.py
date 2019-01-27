@@ -1,13 +1,13 @@
 import time
-import threading
+import multiprocessing as mp
 import current_cmd
 from command import Command
 
 
-class IRFunc(threading.Thread):    # {{{
+class IRFunc(mp.Process):    # {{{
     # Init {{{
     def __init__(self, m, ll, hl, hr, rr, car):
-        threading.Thread.__init__(self)
+        mp.Process.__init__(self)
         self.m = m
         self.car = car
         self.llchannel = ll

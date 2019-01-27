@@ -37,7 +37,7 @@ if __name__ == "__main__":
         wiringpi.digitalWrite(28, wiringpi.HIGH)
         # }}}
 
-        # Threads initialization    {{{
+        # Process initialization    {{{
         trackThread = thread_tracker.tracker('/dev/tracker', car)
         irThread = thread_ir.IRFunc(pins, 8, 7, 6, 5, car)
         lightThread = thread_light.LightFunc(pins, 10, 9, 11, car)
@@ -56,12 +56,12 @@ if __name__ == "__main__":
         app.run(host='0.0.0.0', port='6688')
         # }}}
 
-        trackThread.stop()
-        irThread.stop()
-        lightThread.stop()
-        sonicThread.stop()
-        fireThread.stop()
-        carThread.stop()
+        trackThread.terminate()
+        irThread.terminate()
+        lightThread.terminate()
+        sonicThread.terminate()
+        fireThread.terminate()
+        carThread.terminate()
 
         trackThread.join()
         irThread.join()

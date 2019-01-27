@@ -1,13 +1,13 @@
-import threading
+import multiprocessing as mp
 import time
 import current_cmd
 from command import Command
 
 
-class LightFunc(threading.Thread):    # {{{
+class LightFunc(mp.Process):    # {{{
     # Init {{{
     def __init__(self, m, front, left, right, car):
-        threading.Thread.__init__(self)
+        mp.Process.__init__(self)
 
         self.m = m
         self.front = front

@@ -1,16 +1,16 @@
 #!/usr/bin/python3
 
 import cv2
-import threading
+import multiprocessing as mp
 import current_cmd
 import time
 from command import Command
 
 
-class tracker(threading.Thread):
+class tracker(mp.Process):
 # Init {{{
     def __init__(self, videoDev, car):
-        threading.Thread.__init__(self)
+        mp.Process.__init__(self)
         self.cam = cv2.VideoCapture(videoDev)
         self.ele = cv2.getStructuringElement(cv2.MORPH_RECT, (10, 10))
         self.command = Command.Stop
