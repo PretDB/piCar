@@ -1,9 +1,5 @@
 #!/usr/bin/python3
 # imports {{{
-import wiringpi
-import mecanum
-import pca
-import mcp
 import thread_sonic
 import thread_ir
 import thread_fire
@@ -12,6 +8,8 @@ import thread_light
 import thread_car
 import sys
 import server
+import fake
+import traceback
 from multiprocessing import Value
 # imports}}}
 
@@ -21,56 +19,74 @@ from multiprocessing import Value
 
 # The main program, which initiate the hardware and some threads. {{{
 if __name__ == "__main__":
-    #try:
-    # Basic hardware initialization{{{
-    pwm = pca.PCA()    # Initialization of pca controller
-    # pwm.setFreq(8000)
-    pins = mcp.MCP(channel=0, addr=0)    # MCP initialization
+    isDebug = len(sys.argv) > 1
+    try:
+        isDebug = len(sys.argv) > 1
+        # Basic hardware initialization{{{
+        if isDebug:
+            # Initialization of pca controller
+            pwm = fake.PCA()
+            pins = fake.MCP()
+            car = fake.Mecanum()
+        else:
+            import wiringpi
+            import mecanum
+            import pca
+            import mcp
+            # Initialization of pca controller
+            pwm = pca.PCA()
+            # pwm.setFreq(8000)
+            pins = mcp.MCP(channel=0, addr=0)    # MCP initialization
 
-    # Car wheel initialization
-    car = mecanum.Mecanum(pwm, 0, 1, 2, 3, pins, 1, 2, 3, 4)
-    car.defaultSpeed = 0.2
+            # Car wheel initialization
+            car = mecanum.Mecanum(pwm, 0, 1, 2, 3, pins, 1, 2, 3, 4)
+            car.defaultSpeed = 0.2
 
-    # Wiringpi gpio initialization
-    # This is en pin of motor driver.
-    wiringpi.wiringPiSetup()
-    wiringpi.pinMode(28, wiringpi.OUTPUT)
-    wiringpi.digitalWrite(28, wiringpi.HIGH)
-    # }}}
+            # Wiringpi gpio initialization
+            # This is en pin of motor driver.
+            wiringpi.wiringPiSetup()
+            wiringpi.pinMode(28, wiringpi.OUTPUT)
+            wiringpi.digitalWrite(28, wiringpi.HIGH)
+        # }}}
 
-    # Process initialization    {{{
-    com = Value('I', 0)
-    fire = Value('I', 0)
-    speed = Value('f', 0.0)
-    trackThread = thread_tracker.tracker('/dev/tracker', car, com)
-    irThread = thread_ir.IRFunc(pins, 8, 7, 6, 5, car, com)
-    lightThread = thread_light.LightFunc(pins, 10, 9, 11, car, com)
-    sonicThread = thread_sonic.SonicFunc(pwm, 4, pins, 15, 16, car, com)
-    fireThread = thread_fire.FireFunc(pins, 13, 12, com, fire)
-    carThread = thread_car.carFunc(car, com, speed)
-    svr = server.server(com, fire, speed)
+        # Process initialization    {{{
+        com = Value('I', 0)
+        fire = Value('I', 0)
+        speed = Value('f', 0.0)
 
-    trackThread.start()
-    irThread.start()
-    lightThread.start()
-    sonicThread.start()
-    fireThread.start()
-    carThread.start()
-    svr.run()
-    # }}}
+        if isDebug:
+            trackThread = thread_tracker.tracker(0, car, com)
+            irThread = thread_ir.IRFunc(pins, 8, 7, 6, 5, car, com)
+            lightThread = thread_light.LightFunc(pins, 10, 9, 11, car, com)
+            sonicThread = thread_sonic.SonicFunc(pwm, 4, pins, 15, 16, car, com)
+            fireThread = thread_fire.FireFunc(pins, 13, 12, com, fire)
+            carThread = thread_car.carFunc(car, com, speed)
+            svr = server.server(com, fire, speed)
+        else:
+            trackThread = thread_tracker.tracker('/dev/tracker', car, com)
+            irThread = thread_ir.IRFunc(pins, 8, 7, 6, 5, car, com)
+            lightThread = thread_light.LightFunc(pins, 10, 9, 11, car, com)
+            sonicThread = thread_sonic.SonicFunc(pwm, 4, pins, 15, 16, car, com)
+            fireThread = thread_fire.FireFunc(pins, 13, 12, com, fire)
+            carThread = thread_car.carFunc(car, com, speed)
+            svr = server.server(com, fire, speed)
 
-    trackThread.terminate()
-    irThread.terminate()
-    lightThread.terminate()
-    sonicThread.terminate()
-    fireThread.terminate()
-    carThread.terminate()
+        trackThread.start()
+        irThread.start()
+        lightThread.start()
+        sonicThread.start()
+        fireThread.start()
+        carThread.start()
+        svr.run()
+        # }}}
 
-    #except(BaseException):
-    wiringpi.wiringPiSetup()
-    wiringpi.pinMode(28, wiringpi.OUTPUT)
-    wiringpi.digitalWrite(28, wiringpi.LOW)
+    except(BaseException):
+        if not isDebug:
+            wiringpi.wiringPiSetup()
+            wiringpi.pinMode(28, wiringpi.OUTPUT)
+            wiringpi.digitalWrite(28, wiringpi.LOW)
+        print(traceback.format_exc())
 
-    sys.exit(-1)
+        sys.exit(-1)
 
 # End of main func }}}

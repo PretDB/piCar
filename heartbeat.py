@@ -4,10 +4,10 @@ import socket
 import time
 import json
 import serial
-import qmc
 import locator
 import random
 import filter
+import fake
 
 isDebug = len(sys.argv) > 1
 
@@ -23,10 +23,14 @@ if not isDebug:
 
     fieldX = 6
     fieldY = 4
+    import qmc
+    compass = qmc.QMC(True)
+    id = int(socket.gethostname())
+else:
+    compass = fake.QMC()
+    id = 1
 
-id = int(socket.gethostname())
 
-compass = qmc.QMC(True)
 
 # Network Initializations
 address = ('<broadcast>', 6868)

@@ -2,7 +2,6 @@ import multiprocessing as mp
 import time
 import servo
 import command
-import wiringpi
 from command import Command
 
 
@@ -10,6 +9,12 @@ class SonicFunc(mp.Process):    # {{{
     # Init {{{
     def __init__(self, pca, channel, mcp, echo, trig, car, com):
         mp.Process.__init__(self)
+        try:
+            aa = mcp.regs
+        except(AttributeError):
+            import wiringpi
+            print('jj')
+
         self.servo = servo.Servo(pca, channel)
         self.mcp = mcp
         self.trigPin = trig

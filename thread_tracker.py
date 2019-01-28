@@ -18,6 +18,7 @@ class tracker(mp.Process):
 
         tmpImg = self.readImg()
         post = self.preprocess(tmpImg)
+        self.lastImg = tmpImg
         # Y, toY, X,toX
         self.a1_rec = (0, int(post.shape[0] / 3), 0, int(post.shape[1] * 5 / 16))
         self.a2_rec = (0, int(post.shape[0] / 3), int(post.shape[1] * 11 / 16), post.shape[1])
