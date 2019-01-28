@@ -1,13 +1,12 @@
-import threading
+import multiprocessing as mp
 import time
-import current_cmd
 from command import Command
 
 
-class FireFunc(threading.Thread):    # {{{
+class FireFunc(mp.Process):    # {{{
 # Init {{{
-    def __init__(self, m, cchannel, dchannel):
-        threading.Thread.__init__(self)
+    def __init__(self, m, cchannel, dchannel, com, fire):
+        mp.Process.__init__(self)
         self.m = m
         self.control = cchannel
         self.detect = dchannel
@@ -15,13 +14,17 @@ class FireFunc(threading.Thread):    # {{{
         self.m.pinMode(self.control, 0)
         self.m.pinMode(self.detect, 1)
 
+        self.com = com
+        self.fire = fire
+
         pass
 # }}}
 
     # Run, main thread loop {{{
     def run(self):
         while True:
-            if current_cmd.com == Command.FireDetect:
+            c = Command(self.com.value)
+            if c == Command.FireDetect or bool(self.fire.value):
                 if self.m.digitalRead(self.detect) == 0:
                     self.m.digitalWrite(self.control, 1)
                     time.sleep(5)
@@ -29,7 +32,7 @@ class FireFunc(threading.Thread):    # {{{
                     self.m.digitalWrite(self.control, 0)
 
             self.m.digitalWrite(self.control, 0)
-            time.sleep(0.1)
+            time.sleep(0.2)
 
         pass
     # }}}

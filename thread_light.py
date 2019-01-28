@@ -1,19 +1,19 @@
-import threading
+import multiprocessing as mp
 import time
-import current_cmd
 from command import Command
 
 
-class LightFunc(threading.Thread):    # {{{
+class LightFunc(mp.Process):    # {{{
     # Init {{{
-    def __init__(self, m, front, left, right, car):
-        threading.Thread.__init__(self)
+    def __init__(self, m, front, left, right, car, com):
+        mp.Process.__init__(self)
 
         self.m = m
         self.front = front
         self.left = left
         self.right = right
         self.car = car
+        self.com = com
 
         self.m.pinMode(self.front, 1)
         self.m.pinMode(self.left, 1)
@@ -25,7 +25,8 @@ class LightFunc(threading.Thread):    # {{{
     # Run, main thread loop {{{
     def run(self):
         while True:
-            if current_cmd.com == Command.Light:
+            c = Command(self.com.value)
+            if c == Command.Light:
                 if self.m.digitalRead(self.front) == 0:
                     self.car.move(Command.Forward)
                     continue
