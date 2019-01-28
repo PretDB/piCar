@@ -31,7 +31,6 @@ else:
     id = 1
 
 
-
 # Network Initializations
 address = ('<broadcast>', 6868)
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -103,27 +102,12 @@ def GetLoc():
 while True:
     heartbeatCount = heartbeatCount + 1
 
-    # Get location data
-    # Debug mode:
-    loc = None
-    leg = False
-    if not isDebug:
-        loc, leg = GetLoc()
-
-    ang = GetOri()
-    if loc is not None:
-        heartbeatPackage['Msg'] = {'position': loc, 'orientation': ang}
-    else:
-        heartbeatPackage['Msg'] = {'orientation': ang}
-
     dataRaw = json.dumps(heartbeatPackage)
     dataByte = dataRaw.encode('utf-8')
 
     s.sendto(dataByte, address)
     print('')
     print(time.ctime(), 'count: ', heartbeatCount, )
-    print('Loc: ', loc)
     print(id)
 
-    if not leg:
-        time.sleep(0.3)
+    time.sleep(0.3)

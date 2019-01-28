@@ -6,10 +6,14 @@ import thread_fire
 import thread_tracker
 import thread_light
 import thread_car
+import fakeCar
 import sys
 import server
+<<<<<<< HEAD
 import fake
 import traceback
+=======
+>>>>>>> server_debuging
 from multiprocessing import Value
 # imports}}}
 
@@ -19,6 +23,7 @@ from multiprocessing import Value
 
 # The main program, which initiate the hardware and some threads. {{{
 if __name__ == "__main__":
+<<<<<<< HEAD
     isDebug = len(sys.argv) > 1
     try:
         isDebug = len(sys.argv) > 1
@@ -55,7 +60,7 @@ if __name__ == "__main__":
         speed = Value('f', 0.0)
 
         if isDebug:
-            trackThread = thread_tracker.tracker('/dev/tracker', car, com)
+            trackThread = thread_tracker.tracker(0, car, com)
             irThread = thread_ir.IRFunc(pins, 8, 7, 6, 5, car, com)
             lightThread = thread_light.LightFunc(pins, 10, 9, 11, car, com)
             sonicThread = thread_sonic.SonicFunc(pwm, 4, pins, 15, 16, car, com)
@@ -63,7 +68,7 @@ if __name__ == "__main__":
             carThread = thread_car.carFunc(car, com, speed)
             svr = server.server(com, fire, speed)
         else:
-            trackThread = thread_tracker.tracker(0, car, com)
+            trackThread = thread_tracker.tracker('/dev/tracker', car, com)
             irThread = thread_ir.IRFunc(pins, 8, 7, 6, 5, car, com)
             lightThread = thread_light.LightFunc(pins, 10, 9, 11, car, com)
             sonicThread = thread_sonic.SonicFunc(pwm, 4, pins, 15, 16, car, com)
@@ -88,5 +93,52 @@ if __name__ == "__main__":
         print(traceback.format_exc())
 
         sys.exit(-1)
+=======
+    car = fakeCar.Mecanum()
+    car.defaultSpeed = 0.2
+
+    # Process initialization    {{{
+    com = Value('I', 0)
+    fire = Value('I', 0)
+    speed = Value('f', 0.0)
+    trackThread = thread_tracker.tracker(car, com)
+    irThread = thread_ir.IRFunc(car, com)
+    lightThread = thread_light.LightFunc(car, com)
+    sonicThread = thread_sonic.SonicFunc(car, com)
+    fireThread = thread_fire.FireFunc(com, fire)
+    carThread = thread_car.carFunc(car, com, speed)
+    svr = server.server(com, fire, speed)
+
+    trackThread.start()
+    irThread.start()
+    lightThread.start()
+    sonicThread.start()
+    fireThread.start()
+    carThread.start()
+    svr.run()    # }}}
+
+    # Run server {{{
+    # app.run(host='0.0.0.0', port='6688')
+    # }}}
+
+    # trackThread.terminate()
+    # irThread.terminate()
+    # lightThread.terminate()
+    # sonicThread.terminate()
+    # fireThread.terminate()
+    # carThread.terminate()
+
+    trackThread.join()
+    irThread.join()
+    lightThread.join()
+    sonicThread.join()
+    fireThread.join()
+    carThread.join()
+
+    # except(BaseException):
+    #     print('exception')
+
+    #     sys.exit(-1)
+>>>>>>> server_debuging
 
 # End of main func }}}

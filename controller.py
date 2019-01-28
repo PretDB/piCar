@@ -6,6 +6,7 @@ import thread_fire
 import thread_tracker
 import thread_light
 import thread_car
+import fakeCar
 import sys
 import server
 import fake

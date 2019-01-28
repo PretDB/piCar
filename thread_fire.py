@@ -11,8 +11,8 @@ class FireFunc(mp.Process):    # {{{
         self.control = cchannel
         self.detect = dchannel
 
-        self.m.pinMode(self.control, 0)
-        self.m.pinMode(self.detect, 1)
+        self.com = com
+        self.fire = fire
 
         self.com = com
         self.fire = fire

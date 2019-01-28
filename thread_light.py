@@ -8,10 +8,6 @@ class LightFunc(mp.Process):    # {{{
     def __init__(self, m, front, left, right, car, com):
         mp.Process.__init__(self)
 
-        self.m = m
-        self.front = front
-        self.left = left
-        self.right = right
         self.car = car
         self.com = com
 
@@ -27,6 +23,7 @@ class LightFunc(mp.Process):    # {{{
         while True:
             c = Command(self.com.value)
             if c == Command.Light:
+<<<<<<< HEAD
                 if self.m.digitalRead(self.front) == 0:
                     self.car.move(Command.Forward)
                     continue
@@ -42,6 +39,10 @@ class LightFunc(mp.Process):    # {{{
                 else:
                     self.car.move(Command.Stop)
             time.sleep(0.1)
+=======
+                print('light running')
+            time.sleep(1)
+>>>>>>> server_debuging
 
         pass
     # }}}

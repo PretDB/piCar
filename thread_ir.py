@@ -16,10 +16,7 @@ class IRFunc(mp.Process):    # {{{
         self.hrchannel = hr
         self.rrchannel = rr
 
-        self.m.pinMode(self.llchannel, 1)
-        self.m.pinMode(self.hlchannel, 1)
-        self.m.pinMode(self.hrchannel, 1)
-        self.m.pinMode(self.rrchannel, 1)
+        self.com = com
 
 
         pass
@@ -35,16 +32,7 @@ class IRFunc(mp.Process):    # {{{
                 hrstate = self.m.digitalRead(self.hrchannel)
                 rrstate = self.m.digitalRead(self.rrchannel)
 
-                if llstate == 0 or hlstate == 0:
-                    self.car.move(Command.RightRotate)
-                elif hrstate == 0 or rrstate == 0:
-                    self.car.move(Command.LeftRotate)
-                elif hlstate == 0 and hrstate == 0:
-                    self.car.move(Command.RightRotate)
-                else:
-                    self.car.move(Command.Forward)
-
-            time.sleep(0.1)
+            time.sleep(1)
 
         pass
     # }}}

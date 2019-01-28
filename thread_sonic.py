@@ -22,10 +22,6 @@ class SonicFunc(mp.Process):    # {{{
         self.car = car
         self.com = com
 
-        self.mcp.pinMode(self.trigPin, 0)
-        self.mcp.pinMode(self.echoPin, 1)
-        self.servo.setAngle(90)
-
         pass
     # }}}
 

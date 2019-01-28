@@ -16,6 +16,8 @@ class tracker(mp.Process):
         self.car = car
         self.com = com
 
+        self.com = com
+
         tmpImg = self.readImg()
         post = self.preprocess(tmpImg)
         self.lastImg = tmpImg
