@@ -23,7 +23,6 @@ class LightFunc(mp.Process):    # {{{
         while True:
             c = Command(self.com.value)
             if c == Command.Light:
-<<<<<<< HEAD
                 if self.m.digitalRead(self.front) == 0:
                     self.car.move(Command.Forward)
                     continue
@@ -39,10 +38,6 @@ class LightFunc(mp.Process):    # {{{
                 else:
                     self.car.move(Command.Stop)
             time.sleep(0.1)
-=======
-                print('light running')
-            time.sleep(1)
->>>>>>> server_debuging
 
         pass
     # }}}
