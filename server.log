@@ -1,0 +1,73 @@
+ * Running on http://0.0.0.0:6688/ (Press CTRL+C to quit)
+[2019-01-28 19:24:46,002] ERROR in app: Exception on /controller [POST]
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/flask/app.py", line 1982, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/usr/lib/python3/dist-packages/flask/app.py", line 1615, in full_dispatch_request
+    return self.finalize_request(rv)
+  File "/usr/lib/python3/dist-packages/flask/app.py", line 1630, in finalize_request
+    response = self.make_response(rv)
+  File "/usr/lib/python3/dist-packages/flask/app.py", line 1722, in make_response
+    rv, status_or_headers, headers = rv + (None,) * (3 - len(rv))
+ValueError: too many values to unpack (expected 3)
+192.168.0.103 - - [28/Jan/2019 19:24:46] "POST /controller HTTP/1.1" 500 -
+[2019-01-28 19:24:48,386] ERROR in app: Exception on /controller [POST]
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/flask/app.py", line 1982, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/usr/lib/python3/dist-packages/flask/app.py", line 1615, in full_dispatch_request
+    return self.finalize_request(rv)
+  File "/usr/lib/python3/dist-packages/flask/app.py", line 1630, in finalize_request
+    response = self.make_response(rv)
+  File "/usr/lib/python3/dist-packages/flask/app.py", line 1722, in make_response
+    rv, status_or_headers, headers = rv + (None,) * (3 - len(rv))
+ValueError: too many values to unpack (expected 3)
+192.168.0.103 - - [28/Jan/2019 19:24:48] "POST /controller HTTP/1.1" 500 -
+[2019-01-28 19:24:48,818] ERROR in app: Exception on /controller [POST]
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/flask/app.py", line 1982, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/usr/lib/python3/dist-packages/flask/app.py", line 1615, in full_dispatch_request
+    return self.finalize_request(rv)
+  File "/usr/lib/python3/dist-packages/flask/app.py", line 1630, in finalize_request
+    response = self.make_response(rv)
+  File "/usr/lib/python3/dist-packages/flask/app.py", line 1722, in make_response
+    rv, status_or_headers, headers = rv + (None,) * (3 - len(rv))
+ValueError: too many values to unpack (expected 3)
+192.168.0.103 - - [28/Jan/2019 19:24:48] "POST /controller HTTP/1.1" 500 -
+[2019-01-28 19:24:50,004] ERROR in app: Exception on /controller [POST]
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/flask/app.py", line 1982, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/usr/lib/python3/dist-packages/flask/app.py", line 1615, in full_dispatch_request
+    return self.finalize_request(rv)
+  File "/usr/lib/python3/dist-packages/flask/app.py", line 1630, in finalize_request
+    response = self.make_response(rv)
+  File "/usr/lib/python3/dist-packages/flask/app.py", line 1722, in make_response
+    rv, status_or_headers, headers = rv + (None,) * (3 - len(rv))
+ValueError: too many values to unpack (expected 3)
+192.168.0.103 - - [28/Jan/2019 19:24:50] "POST /controller HTTP/1.1" 500 -
+[2019-01-28 19:24:50,593] ERROR in app: Exception on /controller [POST]
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/flask/app.py", line 1982, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/usr/lib/python3/dist-packages/flask/app.py", line 1615, in full_dispatch_request
+    return self.finalize_request(rv)
+  File "/usr/lib/python3/dist-packages/flask/app.py", line 1630, in finalize_request
+    response = self.make_response(rv)
+  File "/usr/lib/python3/dist-packages/flask/app.py", line 1722, in make_response
+    rv, status_or_headers, headers = rv + (None,) * (3 - len(rv))
+ValueError: too many values to unpack (expected 3)
+192.168.0.103 - - [28/Jan/2019 19:24:50] "POST /controller HTTP/1.1" 500 -
+[2019-01-28 19:24:51,147] ERROR in app: Exception on /controller [POST]
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/flask/app.py", line 1982, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/usr/lib/python3/dist-packages/flask/app.py", line 1615, in full_dispatch_request
+    return self.finalize_request(rv)
+  File "/usr/lib/python3/dist-packages/flask/app.py", line 1630, in finalize_request
+    response = self.make_response(rv)
+  File "/usr/lib/python3/dist-packages/flask/app.py", line 1722, in make_response
+    rv, status_or_headers, headers = rv + (None,) * (3 - len(rv))
+ValueError: too many values to unpack (expected 3)
+192.168.0.103 - - [28/Jan/2019 19:24:51] "POST /controller HTTP/1.1" 500 -
