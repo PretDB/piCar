@@ -26,7 +26,7 @@ class server(mp.Process):
                 if inCommingJson['FromRole'] == 'Controller':
                     self.com.value = int(inCommingJson['Command'])
                     self.speed.value = float(inCommingJson['Args']['Speed'])
-                    self.fire.value = int(inCommingJson['Args']['Speed'])
+                    self.fire.value = int(inCommingJson['Args']['Fire'])
                     print('com: ', command.Command(self.com.value), '\tspeed: ', self.speed.value, '\tfire: ', bool(self.fire.value))
             pass
         self.app.run(host='0.0.0.0', port=6688)

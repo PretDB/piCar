@@ -19,7 +19,7 @@ class FireFunc(mp.Process):    # {{{
     def run(self):
         while True:
             c = Command(self.com.value)
-            if c == Command.FireDetect or float(self.fire.value):
+            if c == Command.FireDetect or bool(self.fire.value):
                 print('fire running')
 
             time.sleep(1)
