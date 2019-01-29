@@ -81,5 +81,7 @@ class Mecanum:
             self.tr.stop()
             pass    # }}}
 
+        self.state = com
+
         return    # }}}
 # }}}

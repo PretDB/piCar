@@ -18,9 +18,12 @@ class tracker(mp.Process):
 
         self.com = com
 
-        tmpImg = self.readImg()
-        post = self.preprocess(tmpImg)
-        self.lastImg = tmpImg
+        r, i = self.cam.read()
+        while not r:
+            r, i = self.cam.read()
+            time.sleep(0.1)
+        self.lastImg = i
+        post = self.preprocess(i)
         # Y, toY, X,toX
         self.a1_rec = (0, int(post.shape[0] / 3), 0, int(post.shape[1] * 5 / 16))
         self.a2_rec = (0, int(post.shape[0] / 3), int(post.shape[1] * 11 / 16), post.shape[1])

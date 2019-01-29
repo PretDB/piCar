@@ -11,6 +11,7 @@ import sys
 import server
 import fake
 import traceback
+import command
 from multiprocessing import Value
 # imports}}}
 
@@ -42,6 +43,7 @@ if __name__ == "__main__":
             # Car wheel initialization
             car = mecanum.Mecanum(pwm, 0, 1, 2, 3, pins, 1, 2, 3, 4)
             car.defaultSpeed = 0.2
+            car.move(command.Command.Stop)
 
             # Wiringpi gpio initialization
             # This is en pin of motor driver.
@@ -81,11 +83,13 @@ if __name__ == "__main__":
         svr.run()
         # }}}
 
-    except(BaseException):
+    except(KeyboardInterrupt):
         if not isDebug:
+            car.move(command.Command.Stop)
             wiringpi.wiringPiSetup()
             wiringpi.pinMode(28, wiringpi.OUTPUT)
             wiringpi.digitalWrite(28, wiringpi.LOW)
+            print('keyboard interrupt')
         print(traceback.format_exc())
 
         sys.exit(-1)

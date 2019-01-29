@@ -13,7 +13,6 @@ class SonicFunc(mp.Process):    # {{{
             aa = mcp.regs
         except(AttributeError):
             import wiringpi
-            print('jj')
 
         self.servo = servo.Servo(pca, channel)
         self.mcp = mcp
