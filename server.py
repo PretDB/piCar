@@ -5,6 +5,7 @@ from flask import Flask, request
 
 class server(mp.Process):
     def __init__(self, cmd, fire, speed):
+        mp.Process.__init__(self)
         self.app = Flask('controller')
         self.com = cmd
         self.speed = speed
