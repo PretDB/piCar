@@ -41,8 +41,8 @@ testS.close()
 s.bind(('', 9999))
 s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
-# loketyr = locator.Locator()
-# loketyr.start()
+loketyr = locator.Locator()
+loketyr.start()
 
 
 
@@ -65,7 +65,7 @@ def GetLoc():
     global lastLoc
     global fieldX
     global fieldY
-    # global loketyr
+    global loketyr
 
     leg = False
 
@@ -74,7 +74,7 @@ def GetLoc():
     t = 0
     if (not isDebug) and f.lokeitid:
         try:
-            # res = loketyr.loc
+            res = loketyr.loc
             if not res == None:
                 tag = res[0]
                 if str(id) == tag:
