@@ -6,12 +6,15 @@ import thread_fire
 import thread_tracker
 import thread_light
 import thread_car
+import thread_hd
+import thread_sd
 import fakeCar
 import sys
 import server
 import fake
 import traceback
 import command
+import time
 from multiprocessing import Value
 # imports}}}
 
@@ -59,28 +62,48 @@ if __name__ == "__main__":
 
         if isDebug:
             trackThread = thread_tracker.tracker(0, car, com)
-            irThread = thread_ir.IRFunc(pins, 8, 7, 6, 5, car, com)
-            lightThread = thread_light.LightFunc(pins, 10, 9, 11, car, com)
-            sonicThread = thread_sonic.SonicFunc(pwm, 4, pins, 15, 16, car, com)
-            fireThread = thread_fire.FireFunc(pins, 13, 12, com, fire)
-            carThread = thread_car.carFunc(car, com, speed)
-            svr = server.server(com, fire, speed)
         else:
             trackThread = thread_tracker.tracker('/dev/tracker', car, com)
-            irThread = thread_ir.IRFunc(pins, 8, 7, 6, 5, car, com)
-            lightThread = thread_light.LightFunc(pins, 10, 9, 11, car, com)
-            sonicThread = thread_sonic.SonicFunc(pwm, 4, pins, 15, 16, car, com)
-            fireThread = thread_fire.FireFunc(pins, 13, 12, com, fire)
-            carThread = thread_car.carFunc(car, com, speed)
-            svr = server.server(com, fire, speed)
+
+        irThread = thread_ir.IRFunc(pins, 8, 7, 6, 5, car, com)
+        lightThread = thread_light.LightFunc(pins, 10, 9, 11, car, com)
+        sonicThread = thread_sonic.SonicFunc(pwm, 4, pins, 15, 16, car, com)
+        fireThread = thread_fire.FireFunc(pins, 13, 12, com, fire)
+        hdThread = thread_hd.HDFunc(pins, 14, car, com)
+        sdThread = thread_sd.SDFunc(pins, 14, car, com)
+        carThread = thread_car.carFunc(car, com, speed)
+        svr = server.server(com, fire, speed)
+
+        irThread.daemon = True
+        lightThread.daemon = True
+        sonicThread.daemon = True
+        fireThread.daemon = True
+        hdThread.daemon = True
+        sdThread.daemon = True
+        carThread.daemon= True
+        trackThread.daemon = True
+        svr.daemon = True
 
         trackThread.start()
         irThread.start()
         lightThread.start()
         sonicThread.start()
         fireThread.start()
+        hdThread.start()
+        sdThread.start()
         carThread.start()
-        svr.run()
+        svr.start()
+
+
+        # TODO: Add servo shake
+        sonicThread.servo.setAngle(10)
+        time.sleep(1)
+        sonicThread.servo.setAngle(170)
+        time.sleep(3)
+        sonicThread.servo.setAngle(90)
+
+        while True:
+            time.sleep(1)
         # }}}
 
     except(KeyboardInterrupt):
