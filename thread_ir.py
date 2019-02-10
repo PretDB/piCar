@@ -32,6 +32,15 @@ class IRFunc(mp.Process):    # {{{
                 hrstate = self.m.digitalRead(self.hrchannel)
                 rrstate = self.m.digitalRead(self.rrchannel)
 
+                if hlstate == 0 and hrstate == 0:
+                    self.car.move(Command.RightRotate)
+                    time.sleep(10)
+                elif hlstate == 0 or llstate == 0:
+                    self.car.move(Command.RightRotate)
+                elif hrstate == 0 or rrstate == 0:
+                    self.car.move(Command.LeftRotate)
+
+
             time.sleep(1)
 
         pass
