@@ -1,14 +1,13 @@
 import socket
-import threading
+import multiprocessing as mp
 import time
 import re
-import serial
 
 
-class Locator(threading.Thread):
+class Locator(mp.Process):
     def __init__(self):
-        # Initialize thread
-        threading.Thread.__init__(self)
+        # Initialize process
+        mp.Process.__init__(self)
 
         # Initialize network
         self.address = ('<broadcast>', 6875);
