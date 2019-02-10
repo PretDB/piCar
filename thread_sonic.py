@@ -26,9 +26,9 @@ class SonicFunc(mp.Process):    # {{{
 
     # Read distance in cm {{{
     def readCM(self):
-        self.mcp.digitalWrite(self.trigPin, wiringpi.HIGH)
+        self.mcp.digitalWrite(self.trigPin, 1)
         time.sleep(0.00001)
-        self.mcp.digitalWrite(self. trigPin, wiringpi.LOW)
+        self.mcp.digitalWrite(self. trigPin, 0)
 
         while self.mcp.digitalRead(self.echoPin) == 0:
             pass

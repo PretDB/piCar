@@ -1,0 +1,1 @@
+KERNEL=="video[0-9]*", SUBSYSTEM=="video4linux", SUBSYSTEMS=="usb", ATTRS{idVendor}=="1689", ATTRS{idProduct}=="2304",MODE:="0666", SYMLINK+="tracker"
