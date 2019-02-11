@@ -19,6 +19,13 @@ from multiprocessing import Value
 # imports}}}
 
 
+def sd():
+    global car
+    car.move(command.Command.RightRotate)
+    time.sleep(3)
+    car.move(command.Command.Stop)
+    return
+
 # Attention, all external devices ( fire, ir, light )
 # are activated at low level.
 
@@ -42,6 +49,8 @@ if __name__ == "__main__":
             pwm = pca.PCA()
             # pwm.setFreq(8000)
             pins = mcp.MCP(channel=0, addr=0)    # MCP initialization
+            pins.pinMode(13, 0)
+            pins.pinMode(12, 1)
 
             # Car wheel initialization
             car = mecanum.Mecanum(pwm, 0, 1, 2, 3, pins, 1, 2, 3, 4)
@@ -53,6 +62,8 @@ if __name__ == "__main__":
             wiringpi.wiringPiSetup()
             wiringpi.pinMode(28, wiringpi.OUTPUT)
             wiringpi.digitalWrite(28, wiringpi.HIGH)
+            wiringpi.pinMode(29, wiringpi.INPUT)
+            wiringpi.wiringPiISR(29, wiringpi.INT_EDGE_FALLING, sd)
         # }}}
 
         # Process initialization    {{{
@@ -70,7 +81,7 @@ if __name__ == "__main__":
         sonicThread = thread_sonic.SonicFunc(pwm, 4, pins, 15, 16, car, com)
         fireThread = thread_fire.FireFunc(pins, 13, 12, com, fire)
         hdThread = thread_hd.HDFunc(pins, 14, car, com)
-        sdThread = thread_sd.SDFunc(pins, 14, car, com)
+        sdThread = thread_sd.SDFunc(car, com)
         carThread = thread_car.carFunc(car, com, speed)
         svr = server.server(com, fire, speed)
 
@@ -97,9 +108,9 @@ if __name__ == "__main__":
 
         # TODO: Add servo shake
         sonicThread.servo.setAngle(10)
-        time.sleep(1)
+        time.sleep(0.5)
         sonicThread.servo.setAngle(170)
-        time.sleep(3)
+        time.sleep(1)
         sonicThread.servo.setAngle(90)
 
         while True:

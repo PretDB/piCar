@@ -1,20 +1,20 @@
 import multiprocessing as mp
 import time
 from command import Command
+import wiringpi
 
 
 # {{{
 class SDFunc(mp.Process):
     # Init {{{
-    def __init__(self, m, sd, car, com):
+    def __init__(self, car, com):
         mp.Process.__init__(self)
-        self.m = m
-        self.sd = sd
 
         self.car = car
         self.com = com
 
-        self.m.pinMode(self.sd, 1)
+        wiringpi.wiringPiSetup()
+        wiringpi.pinMode(29, wiringpi.INPUT)
 
         pass
     # }}}
