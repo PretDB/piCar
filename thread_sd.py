@@ -19,17 +19,25 @@ class SDFunc(mp.Process):
         pass
     # }}}
 
+    def trig(self):
+        self.car.move(Command.RightRotate)
+        time.sleep(2)
+        self.car.move(Command.Stop)
+        return
+
+    def untrig():
+        return
+
     # Run, main thread loop {{{
     def run(self):
         while True:
             c = Command(self.com.value)
-            if c == Command.HumanDetect:
+            if c == Command.SoundDetect:
                 # TODO: This should be confirmed
-                if self.m.digitalRead(self.hd) == 0:
-                    self.car.move(Command.RightRotate)
-                    time.sleep(3)
-                pass
-            time.sleep(0.1)
+                wiringpi.wiringPiISR(29, wiringpi.INT_EDGE_FALLING, self.trig)
+            else:
+                wiringpi.wiringPiISR(29, wiringpi.INT_EDGE_FALLING, self.untrig)
+            time.sleep(0.3)
         pass
     # }}}
 # }}}

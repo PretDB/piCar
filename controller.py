@@ -19,13 +19,6 @@ from multiprocessing import Value
 # imports}}}
 
 
-def sd():
-    global car
-    car.move(command.Command.RightRotate)
-    time.sleep(3)
-    car.move(command.Command.Stop)
-    return
-
 # Attention, all external devices ( fire, ir, light )
 # are activated at low level.
 
@@ -62,8 +55,6 @@ if __name__ == "__main__":
             wiringpi.wiringPiSetup()
             wiringpi.pinMode(28, wiringpi.OUTPUT)
             wiringpi.digitalWrite(28, wiringpi.HIGH)
-            wiringpi.pinMode(29, wiringpi.INPUT)
-            wiringpi.wiringPiISR(29, wiringpi.INT_EDGE_FALLING, sd)
         # }}}
 
         # Process initialization    {{{
