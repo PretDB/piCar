@@ -1,35 +1,25 @@
-import multiprocessing as mp
 import time
 from command import Command
 
 
 # {{{
-class HDFunc(mp.Process):
+class HDFunc():
     # Init {{{
-    def __init__(self, m, hd, car, com):
-        mp.Process.__init__(self)
-        self.m = m
-        self.hd = hd
-
+    def __init__(self, pins, detectPin, car):
+        self.pins = pins
+        self.detect = detectPin
         self.car = car
-        self.com = com
 
-        self.m.pinMode(self.hd, 1)
+        self.pins.pinMode(self.detect, self.pins.INPUT)
 
         pass
     # }}}
 
     # Run, main thread loop {{{
-    def run(self):
-        while True:
-            c = Command(self.com.value)
-            if c == Command.HumanDetect:
-                # TODO: This should be confirmed
-                if self.m.digitalRead(self.hd) == 0:
-                    self.car.move(Command.RightRotate)
-                    time.sleep(3)
-                pass
-            time.sleep(0.1)
+    def detect(self):
+        if self.pins.digitalRead(self.detect) == 0:
+            self.car.move(Command.RightRotate)
+            time.sleep(3)
         pass
     # }}}
 # }}}
