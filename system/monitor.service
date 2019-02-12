@@ -1,0 +1,13 @@
+[Unit]
+Description=local webcam streamer
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/mjpg_streamer -i "/usr/local/lib/mjpg-streamer/input_uvc.so -d /dev/monitor -y -r 320x240" -o "/usr/local/lib/mjpg-streamer/output_http.so -p 8080"
+Restart=on-failure
+RestartSec=3s
+
+[Install]
+WantedBy=multi-user.target

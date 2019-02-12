@@ -1,0 +1,13 @@
+[Unit]
+Description=heartbeat broadcaster
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /home/pi/piCar/heartbeat.py debug
+Restart=on-failure
+RestartSec=3s
+
+[Install]
+WantedBy=multi-user.target
