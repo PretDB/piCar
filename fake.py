@@ -90,6 +90,10 @@ class PCA:    # {{{
 
 class MCP:    # {{{
     def __init__(self):    # {{{
+        self.INPUT = 1
+        self.OUTPUT = 0
+        self.HIGH = 1
+        self.LOW = 0
         self.ioDirectReg_A = 0x00
         self.ioDirectReg_B = 0x01
         self.iPolarityReg_A = 0x02
