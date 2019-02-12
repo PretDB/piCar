@@ -22,6 +22,7 @@ class FireFunc(threading.Thread):    # {{{
             if bool(self.fire.value):
                 if self.pins.digitalRead(self.detect) == 0:
                     self.pins.digitalWrite(self.control, 1)
+                    time.sleep(1)
                 else:
                     self.pins.digitalWrite(self.control, 0)
                     pass
