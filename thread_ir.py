@@ -1,52 +1,48 @@
 import time
-import multiprocessing as mp
 from command import Command
 
 
-class IRFunc(mp.Process):    # {{{
+class IRFunc():    # {{{
     # Init {{{
-    def __init__(self, m, ll, hl, hr, rr, car, com):
-        mp.Process.__init__(self)
-        self.m = m
+    def __init__(self, pins, ll, hl, hr, rr, car, com):
         self.car = car
         self.com = com
 
+        self.pins = pins
         self.llchannel = ll
         self.hlchannel = hl
         self.hrchannel = hr
         self.rrchannel = rr
-
-        self.com = com
-
+        self.pins.pinMode(self.llchannel, self.pins.INPUT)
+        self.pins.pinMode(self.hlchannel, self.pins.INPUT)
+        self.pins.pinMode(self.hrchannel, self.pins.INPUT)
+        self.pins.pinMode(self.rrchannel, self.pins.INPUT)
 
         pass
     # }}}
 
-    # Run, main thread loop {{{
+    # Run, ir loop {{{
     def run(self):
         while True:
+            time.sleep(0.1)
             c = Command(self.com.value)
-            if c == Command.IR or c == Command.Sonic:
-                llstate = self.m.digitalRead(self.llchannel)
-                hlstate = self.m.digitalRead(self.hlchannel)
-                hrstate = self.m.digitalRead(self.hrchannel)
-                rrstate = self.m.digitalRead(self.rrchannel)
+            if c == Command.IR:
+                llstate = self.pins.digitalRead(self.llchannel)
+                hlstate = self.pins.digitalRead(self.hlchannel)
+                hrstate = self.pins.digitalRead(self.hrchannel)
+                rrstate = self.pins.digitalRead(self.rrchannel)
 
-                if hlstate == 0 and hrstate == 0:
+                if hlstate == self.pins.LOW and hrstate == self.pins.LOW:
                     self.car.move(Command.RightRotate)
-                    time.sleep(10)
-                elif hlstate == 0 or llstate == 0:
+                elif hlstate == self.pins.LOW or llstate == self.pins.LOW:
                     self.car.move(Command.RightRotate)
-                elif hrstate == 0 or rrstate == 0:
+                elif hrstate == self.pins.LOW or rrstate == self.pins.LOW:
                     self.car.move(Command.LeftRotate)
-
-
-            time.sleep(1)
-
-        pass
-    # }}}
-    # Stop {{{
-    def stop(self):
-        self.running = False
+                else:
+                    self.car.move(Command.Forward)
+            else:
+                self.car.move(Command.Stop)
+                break
+        return
     # }}}
 # }}}

@@ -1,4 +1,4 @@
-# !/usr/bin/python3
+#!/usr/bin/python3
 # Imports {{{
 # Basic imports {{{
 from command import Command
@@ -100,19 +100,31 @@ def initiation():
     # }}}
 
     # Function related initiations. {{{
-    fireThread = thread_fire.FireFunc(pins=pins, controlPin=13, detectPin=12)
+    # Only fireThrad works as a thread
+    fireThread = thread_fire.FireFunc(pins=pins,
+                                      controlPin=13,
+                                      detectPin=12,
+                                      fire=recvFire)
     fireThread.daemon = True
     fireThread.start()
-    hdThread = thread_hd.HDFunc(pins=pins, detectPin=14, car=car)
-    irThread = thread_ir.IRFunc(pins, 8, 7, 6, 5, car, com)
-    lightThread = thread_light.LightFunc(pins, 10, 9, 11, car, com)
-    sdThread = thread_sd.SDFunc(car, com)
-    sonicThread = thread_sonic.SonicFunc(pwm, 4, pins, 15, 16, car, com)
+    hdThread = thread_hd.HDFunc(pins=pins, detectPin=14,
+                                car=car, com=recvCom)
+    irThread = thread_ir.IRFunc(pins=pins,
+                                ll=8, hl=7, hr=6, rr=5,
+                                car=car, com=recvCom)
+    lightThread = thread_light.LightFunc(pins=pins,
+                                         front=10, left=9, right=11,
+                                         car=car, com=recvCom)
+    sdThread = thread_sd.SDFunc(isDebug, car, recvCom)
+    sonicThread = thread_sonic.SonicFunc(pwm=pwm, servoChannel=4, pins=pins,
+                                         echo=15, trig=16,
+                                         car=car, com=recvCom)
 
     if isDebug:
-        trackThread = thread_tracker.tracker(0, car, com)
+        trackThread = thread_tracker.tracker(videoDev=0, car=car, com=recvCom)
     else:
-        trackThread = thread_tracker.tracker('/dev/tracker', car, com)
+        trackThread = thread_tracker.tracker(videoDev='/dev/tracker',
+                                             car=car, com=recvCom)
     # }}}
 
     pass
@@ -135,19 +147,23 @@ if __name__ == "__main__":
             # Pass command directly to car
             car.carMove(com, speed)
 
-            if com == Command.FireDetect:
-                pass
-            elif com == Command.HumanDetect:
+            if com == Command.HumanDetect:
+                hdThread.run()
                 pass
             elif com == Command.IR:
+                irThread.run()
                 pass
             elif com == Command.Light:
+                lightThread.run()
                 pass
             elif com == Command.Sonic:
+                sonicThread.run()
                 pass
             elif com == Command.SoundDetect:
+                sdThread.run()
                 pass
             elif com == Command.Track:
+                trackThread.run()
                 pass
             pass
 

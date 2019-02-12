@@ -1,54 +1,58 @@
-import multiprocessing as mp
 import time
 from command import Command
-import wiringpi
-
-sdCar = None
 
 
-def trig():
-    global sdCar
-    print('sound')
-    sdCar.move(Command.RightRotate)
-    time.sleep(2)
-    sdCar.move(Command.Stop)
-    return
-
-
-def untrig():
-    return
-
-
-# {{{
-class SDFunc(mp.Process):
+class SDFunc():    # {{{
     # Init {{{
-    def __init__(self, car, com):
-        mp.Process.__init__(self)
-
-        global sdCar
+    def __init__(self, isDebug, car, com):
+        if not isDebug:
+            import wiringpi
+            self.wiringpi = wiringpi
+            self.wiringpi.wiringPiSetup()
+            self.wiringpi.pinMode(29, wiringpi.INPUT)
 
         self.car = car
         self.com = com
-        sdCar = self.car
 
-        wiringpi.wiringPiSetup()
-        wiringpi.pinMode(29, wiringpi.INPUT)
-
-        pass
+        self.hooked = False
+        return
     # }}}
 
     # Run, main thread loop {{{
     def run(self):
+        def trig():
+            if not self.wiringpi:
+                # Disable interrupt
+                self.wiringpi.wiringPiISR(29, self.wiringpi.INT_EDGE_FALLING,
+                                          untrig)
+                self.car.move(Command.RightRotate)
+                time.sleep(3)
+                self.car.move(Command.Stop)
+                # Enable interrupt
+                self.wiringpi.wiringPiISR(29, self.wiringpi.INT_EDGE_FALLING,
+                                          trig)
+            return
+
+        def untrig():
+            return
+
         while True:
+            time.sleep(0.3)
             c = Command(self.com.value)
             if c == Command.SoundDetect:
-                # TODO: This should be confirmed
-                wiringpi.wiringPiISR(29, wiringpi.INT_EDGE_FALLING, trig)
-                print('set trig')
+                if not self.hooked and not self.wiringpi:
+                    self.wiringpi.wiringPiISR(29,
+                                              self.wiringpi.INT_EDGE_FALLING,
+                                              trig)
+                else:
+                    pass
             else:
-                wiringpi.wiringPiISR(29, wiringpi.INT_EDGE_FALLING, untrig)
-                print('unset trig')
-            time.sleep(0.3)
-        pass
+                if self.hooked and not self.wiringpi:
+                    self.wiringpi.wiringPiISR(29,
+                                              self.wiringpi.INT_EDGE_FALLING,
+                                              untrig)
+                    self.car.move(Command.Stop)
+                    break
+        return
     # }}}
 # }}}

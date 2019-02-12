@@ -1,13 +1,11 @@
-import multiprocessing as mp
 import time
 from command import Command
 
 
-class LightFunc(mp.Process):    # {{{
+class LightFunc():    # {{{
     # Init {{{
-    def __init__(self, m, front, left, right, car, com):
-        mp.Process.__init__(self)
-        self.m = m
+    def __init__(self, pins, front, left, right, car, com):
+        self.pins = pins
         self.front = front
         self.left = left
         self.right = right
@@ -15,38 +13,35 @@ class LightFunc(mp.Process):    # {{{
         self.car = car
         self.com = com
 
-        self.m.pinMode(self.front, 1)
-        self.m.pinMode(self.left, 1)
-        self.m.pinMode(self.right, 1)
+        self.pins.pinMode(self.front, self.pins.INPUT)
+        self.pins.pinMode(self.left, self.pins.INPUT)
+        self.pins.pinMode(self.right, self.pins.INPUT)
 
         pass
     # }}}
 
-    # Run, main thread loop {{{
+    # Run, light loop {{{
     def run(self):
         while True:
+            time.sleep(0.05)
             c = Command(self.com.value)
             if c == Command.Light:
-                if self.m.digitalRead(self.front) == 0:
+                if self.pins.digitalRead(self.front) == self.pins.LOW:
                     self.car.move(Command.Forward)
                     continue
 
-                elif self.m.digitalRead(self.left) == 0:
+                elif self.pins.digitalRead(self.left) == self.pins.LOW:
                     self.car.move(Command.LeftRotate)
                     continue
 
-                elif self.m.digitalRead(self.right) == 0:
+                elif self.pins.digitalRead(self.right) == self.pins.LOW:
                     self.car.move(Command.RightRotate)
                     continue
-
                 else:
                     self.car.move(Command.Stop)
-            time.sleep(0.1)
-
-        pass
-    # }}}
-    # Stop {{{
-    def stop(self):
-        self.running = False
+            else:
+                self.car.move(Command.Stop)
+                break
+        return
     # }}}
 # }}}

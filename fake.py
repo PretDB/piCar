@@ -1,88 +1,88 @@
-import multiprocessing as mp
-import time
 import ctypes
 import math
 
-class Mecanum(): # {{{
-    def __init__(self): # {{{
-        return          # }}}
+
+class Mecanum():    # {{{
+    def __init__(self):    # {{{
+        return
+    # }}}
 
     def move(self, com):    # {{{
-        print('car move ', com, 'at default speed')
+        self.carMove(com, 0.2)
         return              # }}}
 
     def carMove(self, com, speed):  # {{{
-        print('car move ', com, 'at speed = ', speed)
+        # print('car move ', com, 'at speed = ', speed)
         return                      # }}}
 # }}}
 
 
 class PCA:    # {{{
     # Subaddress did not NotImplemented
-    def __init__( self, useSubAddress = False ):
-        self.channelValue= [0, 0, 0, 0, 0, 0]
+    def __init__(self, useSubAddress=False):
+        self.channelValue = [0, 0, 0, 0, 0, 0]
         # Sub address
         if useSubAddress:
             print('PCA: pca uses sub address')
 
-        self.setFreq( 200 )
+        self.setFreq(200)
 
         return
 
-    def setChannelValue_ratio( self, channel, delay, duty ):
+    def setChannelValue_ratio(self, channel, delay, duty):
         delay_val = delay * 4096
         duty_val = duty * 4096
 
-        on = round( delay_val )
-        off = round( delay_val + duty_val - 1 )
-        self.setChannelValue_raw( channel, on, off )
+        on = round(delay_val)
+        off = round(delay_val + duty_val - 1)
+        self.setChannelValue_raw(channel, on, off)
 
         return
 
-    def setChannelValue_time_s( self, channel, delay, duty ):
-        self.setChannelValue_time_us( channel, delay * 1000000, duty * 1000000 )
+    def setChannelValue_time_s(self, channel, delay, duty):
+        self.setChannelValue_time_us(channel, delay * 1000000, duty * 1000000)
 
         return
 
-    def setChannelValue_time_ms( self, channel, delay, duty ):
-        self.setChannelValue_time_us( channel, delay * 1000, duty * 1000 )
+    def setChannelValue_time_ms(self, channel, delay, duty):
+        self.setChannelValue_time_us(channel, delay * 1000, duty * 1000)
 
         return
 
-    def setChannelValue_time_us( self, channel, delay, duty ):
+    def setChannelValue_time_us(self, channel, delay, duty):
         if delay + duty <= self.period * 1000000:
             delay_r = delay / self.period / 1000000
             duty_r = duty / self.period / 1000000
 
-            self.setChannelValue_ratio( channel, delay_r, duty_r )
+            self.setChannelValue_ratio(channel, delay_r, duty_r)
 
         return
 
     # dely and duty are described in count, which means delay + count should
     # less than 4095 ( counter varies from 0 to 4095 ( inclusive ) )
-    def setChannelValue_raw( self, channel, on, off ):
+    def setChannelValue_raw(self, channel, on, off):
         self.channelValue[channel] = (on, off)
 
         return
 
     # Set frequency ( in Hz ):
-    def setFreq( self, freq ):
+    def setFreq(self, freq):
         self.freq = freq
         self.period = 1 / freq
 
         return
 
     # Period unit is in s
-    def setPeriod( self, period ):
+    def setPeriod(self, period):
         f = 1 / period
-        self.setFreq( f )
+        self.setFreq(f)
 
         return
 
-    def sleep( self, isSleep ):
+    def sleep(self, isSleep):
         return
 
-    def reset( self ):
+    def reset(self):
         return
 
 # }}}
@@ -205,7 +205,7 @@ class MCP:    # {{{
             low = self.regs[addr]
             high = self.regs[addr + 1]
         except(KeyError):
-            self.regs[addr] = 0;
+            self.regs[addr] = 0
             self.regs[addr + 1] = 0
             return (0, 0)
         else:
@@ -215,7 +215,7 @@ class MCP:    # {{{
         low = data & 0x00FF
         high = ((data >> 8) & 0x00FF)
         self.regs[addr] = low
-        self.regs[addr + 1]  = high
+        self.regs[addr + 1] = high
         return    # }}}
 
     def regRead(self, addr):    # {{{
@@ -232,6 +232,7 @@ class MCP:    # {{{
         return    # }}}
 # }}}
 
+
 class QMC:    # {{{
     def __init__(self):
         self.xoff = 0
@@ -242,28 +243,28 @@ class QMC:    # {{{
         self.zgain = 1
         return
 
-    def reset( self ):
+    def reset(self):
         return
 
-    def set( self ):
+    def set(self):
         return
 
-    def readMag_Raw( self ):
+    def readMag_Raw(self):
         dataRaw = [0, 0, 0, 0, 0, 0]
 
         return dataRaw
 
-    def readMag( self ):
+    def readMag(self):
         dataRaw = self.readMag_Raw()
         tmp = [0, 0, 0, 0, 0, 0]
-        data = [ 0, 0, 0]
+        data = [0, 0, 0]
 
-        tmp[0] = ctypes.c_ubyte( dataRaw[0] )
-        tmp[2] = ctypes.c_ubyte( dataRaw[2] )
-        tmp[4] = ctypes.c_ubyte( dataRaw[4] )
-        tmp[1] = ctypes.c_byte( dataRaw[1] )
-        tmp[3] = ctypes.c_byte( dataRaw[3] )
-        tmp[5] = ctypes.c_byte( dataRaw[5] )
+        tmp[0] = ctypes.c_ubyte(dataRaw[0])
+        tmp[2] = ctypes.c_ubyte(dataRaw[2])
+        tmp[4] = ctypes.c_ubyte(dataRaw[4])
+        tmp[1] = ctypes.c_byte(dataRaw[1])
+        tmp[3] = ctypes.c_byte(dataRaw[3])
+        tmp[5] = ctypes.c_byte(dataRaw[5])
 
         # Assembly data
         data[0] = tmp[1].value << 8 | tmp[0].value
@@ -271,17 +272,17 @@ class QMC:    # {{{
         data[2] = tmp[5].value << 8 | tmp[4].value
 
         # Cali
-        data[0] = self.xgain * ( data[0] + self.xoff )
-        data[1] = self.ygain * ( data[1] + self.yoff )
-        data[2] = self.zgain * ( data[2] + self.zoff )
+        data[0] = self.xgain * (data[0] + self.xoff)
+        data[1] = self.ygain * (data[1] + self.yoff)
+        data[2] = self.zgain * (data[2] + self.zoff)
 
         return data
 
-    def readAngle( self ):
+    def readAngle(self):
         xyz = self.readMag()
         angle = math.atan2(xyz[1], xyz[0]) * 180 / math.pi + 180
         return angle
 
-    def cali( self, write ):
+    def cali(self, write):
         return
 # }}}

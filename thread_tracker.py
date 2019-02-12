@@ -1,21 +1,16 @@
 #!/usr/bin/python3
-
 import cv2
-import multiprocessing as mp
 import time
 from command import Command
 
 
-class tracker(mp.Process):
-# Init {{{
+class tracker():    # {{{
+    # Init {{{
     def __init__(self, videoDev, car, com):
-        mp.Process.__init__(self)
         self.cam = cv2.VideoCapture(videoDev)
         self.ele = cv2.getStructuringElement(cv2.MORPH_RECT, (10, 10))
         self.command = Command.Stop
         self.car = car
-        self.com = com
-
         self.com = com
 
         r, i = self.cam.read()
@@ -25,16 +20,28 @@ class tracker(mp.Process):
         self.lastImg = i
         post = self.preprocess(i)
         # Y, toY, X,toX
-        self.a1_rec = (0, int(post.shape[0] / 3), 0, int(post.shape[1] * 5 / 16))
-        self.a2_rec = (0, int(post.shape[0] / 3), int(post.shape[1] * 11 / 16), post.shape[1])
-        self.a3_rec = (int(post.shape[0] / 3), int(post.shape[0] * 2/ 3), 0, post.shape[1])
-        self.a4_rec = (int(post.shape[0] * 7 / 9), post.shape[0], 0, post.shape[1])
+        self.a1_rec = (0,
+                       int(post.shape[0] / 3),
+                       0,
+                       int(post.shape[1] * 5 / 16))
+        self.a2_rec = (0,
+                       int(post.shape[0] / 3),
+                       int(post.shape[1] * 11 / 16),
+                       post.shape[1])
+        self.a3_rec = (int(post.shape[0] / 3),
+                       int(post.shape[0] * 2 / 3),
+                       0,
+                       post.shape[1])
+        self.a4_rec = (int(post.shape[0] * 7 / 9),
+                       post.shape[0],
+                       0,
+                       post.shape[1])
 
         pass
 # }}}
 
-    # Run, main thread loop {{{
-    # Here, this thrad firstly check the current command from app.
+    # Run, tracker loop {{{
+    # Here, this function firstly check the current command from app.
     # If the current command is track, then calculate direction, and
     # the corresponding command. The tracker thread send the command
     # to car.
@@ -44,8 +51,11 @@ class tracker(mp.Process):
             if c == Command.Track:
                 self.command = self.getDir()
                 self.car.move(self.command)
+            else:
+                self.car.move(Command.Stop)
+                break
             time.sleep(0.1)
-        pass
+        return
     # }}}
 
     # Read image {{{
@@ -98,10 +108,14 @@ class tracker(mp.Process):
         post = self.preprocess(img)
 
         # Cut image
-        a1 = post[self.a1_rec[0] : self.a1_rec[1], self.a1_rec[2] : self.a1_rec[3]]
-        a2 = post[self.a2_rec[0] : self.a2_rec[1], self.a2_rec[2] : self.a2_rec[3]]
-        a3 = post[self.a3_rec[0] : self.a3_rec[1], self.a3_rec[2] : self.a3_rec[3]]
-        a4 = post[self.a4_rec[0] : self.a4_rec[1], self.a4_rec[2] : self.a4_rec[3]]
+        a1 = post[self.a1_rec[0]: self.a1_rec[1],
+                  self.a1_rec[2]: self.a1_rec[3]]
+        a2 = post[self.a2_rec[0]: self.a2_rec[1],
+                  self.a2_rec[2]: self.a2_rec[3]]
+        a3 = post[self.a3_rec[0]: self.a3_rec[1],
+                  self.a3_rec[2]: self.a3_rec[3]]
+        a4 = post[self.a4_rec[0]: self.a4_rec[1],
+                  self.a4_rec[2]: self.a4_rec[3]]
 
         # Calculate center
         a1_p = self.calc(a1, self.a1_rec[2], self.a1_rec[0])
@@ -112,7 +126,8 @@ class tracker(mp.Process):
         # Motion calculate
         if a1_p[0] > 200 and a2_p[0] > 200:
             self.command = Command.Stop
-        elif abs((a3_p[1][0] + a4_p[1][0]) / 2 - post.shape[1] / 2) > post.shape[1] * 0.2:
+        elif abs((a3_p[1][0] + a4_p[1][0]) / 2 - post.shape[1] / 2)\
+                > post.shape[1] * 0.2:
             if (a3_p[1][0] + a4_p[1][0]) / 2 < post.shape[1] / 2:
                 self.command = Command.LeftShift
             else:
@@ -127,7 +142,4 @@ class tracker(mp.Process):
 
         return self.command
     # }}}
-    # Stop {{{
-    def stop(self):
-        self.running = False
-    # }}}
+# }}}

@@ -2,9 +2,9 @@ import threading
 import time
 
 
-class FireFunc():    # {{{
-# Init {{{
-    def __init__(self, pins, controlPin, detectPin):
+class FireFunc(threading.Thread):    # {{{
+    # Init {{{
+    def __init__(self, pins, controlPin, detectPin, fire):
         threading.Thread.__init__(self)
 
         self.pins = pins
@@ -13,13 +13,13 @@ class FireFunc():    # {{{
         self.pins.pinMode(self.control, self.pins.OUTPUT)
         self.pins.pinMode(self.detect, self.pins.INPUT)
 
-        self.detectEnabled = False
-# }}}
+        self.fire = fire
+    # }}}
 
     # Run, main thread loop {{{
     def run(self):
         while True:
-            if self.detectEnabled:
+            if bool(self.fire.value):
                 if self.pins.digitalRead(self.detect) == 0:
                     self.pins.digitalWrite(self.control, 1)
                 else:
