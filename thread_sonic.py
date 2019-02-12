@@ -10,6 +10,8 @@ class SonicFunc():    # {{{
         self.pins = pins
         self.trigPin = trig
         self.echoPin = echo
+        self.pins.pinMode(self.trigPin, self.pins.OUTPUT)
+        self.pins.pinMode(self.echoPin, self.pins.INPUT)
         self.car = car
         self.com = com
 
@@ -41,27 +43,29 @@ class SonicFunc():    # {{{
             c = Command(self.com.value)
             if c == Command.Sonic:
                 self.servo.setAngle(90)
+                time.sleep(1)
                 frontDis = self.readCM()
                 if frontDis < 10.0 or frontDis > 40.0:
                     self.car.move(Command.Forward)
                 else:
                     self.car.move(Command.Stop)
+                    time.sleep(2)
                     leftAve = 0.0
                     rightAve = 0.0
 
                     for leftTick in range(3):
                         self.servo.setAngle(leftTick * 30)
-                        time.sleep(0.5)
+                        time.sleep(1)
                         leftAve += self.readCM()
                     for rightTick in range(3, 6):
                         self.servo.setAngle(rightTick * 30)
-                        time.sleep(0.5)
+                        time.sleep(1)
                         rightAve += self.readCM()
 
                     leftAve /= 3
                     rightAve /= 3
 
-                    if rightAve > leftAve:
+                    if rightAve < leftAve:
                         self.car.move(Command.RightRotate)
                     else:
                         self.car.move(Command.LeftRotate)
