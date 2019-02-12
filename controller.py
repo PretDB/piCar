@@ -6,6 +6,7 @@ import fake
 import server
 import sys
 import traceback
+import time
 from multiprocessing import Value
 # }}}
 # Functional imports {{{
@@ -127,7 +128,12 @@ def initiation():
                                              car=car, com=recvCom)
     # }}}
 
-    pass
+    sonicThread.servo.setAngle(0)
+    time.sleep(1)
+    sonicThread.servo.setAngle(180)
+    time.sleep(1)
+    sonicThread.servo.setAngle(90)
+    return
 # }}}
 
 
