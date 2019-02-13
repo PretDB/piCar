@@ -1,3 +1,6 @@
-*.swp
-*\~
-__pycache__
+rasp/run_env
+rasp/.ropeproject
+rasp/__pycache__
+*~
+*.pyc
+.ropeproject
