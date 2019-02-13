@@ -1,8 +1,8 @@
 import wiringpi
-import pca
+
 
 class Motor:
-    def __init__( self, pcaInstance, pwmChannel, mcpInstance, invPin ):
+    def __init__(self, pcaInstance, pwmChannel, mcpInstance, invPin, enPin):
         self.pwmChannel = pwmChannel
         self.invPin = invPin
         self.pca = pcaInstance
@@ -10,18 +10,24 @@ class Motor:
 
         self.mcp.pinMode(self.invPin, 0)
 
+        self.enPin = enPin
+        wiringpi.wiringPiSetup()
+        wiringpi.pinMode(self.enPin, wiringpi.OUTPUT)
         return
 
     # speed is described in ratio
     # inverse = True or 1 for inverse
     def rotate(self, inverse, speed):
         if not inverse:
+            wiringpi.digitalWrite(self.enPin, wiringpi.LOW)
             self.mcp.digitalWrite(self.invPin, 0)
             self.pca.setChannelValue_ratio(self.pwmChannel, 0, speed)
+            wiringpi.digitalWrite(self.enPin, wiringpi.HIGH)
         else:
+            wiringpi.digitalWrite(self.enPin, wiringpi.LOW)
             self.mcp.digitalWrite(self.invPin, 1)
             self.pca.setChannelValue_ratio(self.pwmChannel, 0, 1 - speed)
-
+            wiringpi.digitalWrite(self.enPin, wiringpi.HIGH)
         return
 
     def stop(self):

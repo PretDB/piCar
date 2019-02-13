@@ -9,16 +9,19 @@ from command import Command
 # Port C => TR
 # Port D => TL
 class Mecanum:
-    def __init__(self, pcaInst, hlP, hrP, tlP, trP, mcpInst, hlC, hrC, tlC, trC):  # {{{
-        self.hl = motor.Motor(pcaInst, hlP, mcpInst, hlC)
-        self.hr = motor.Motor(pcaInst, hrP, mcpInst, hrC)
-        self.tl = motor.Motor(pcaInst, tlP, mcpInst, tlC)
-        self.tr = motor.Motor(pcaInst, trP, mcpInst, trC)
+    def __init__(self, pcaInst, hlP, hrP, tlP, trP,  # {{{
+                 mcpInst, hlC, hrC, tlC, trC, enPin):
+        self.hl = motor.Motor(pcaInst, hlP, mcpInst, hlC, enPin)
+        self.hr = motor.Motor(pcaInst, hrP, mcpInst, hrC, enPin)
+        self.tl = motor.Motor(pcaInst, tlP, mcpInst, tlC, enPin)
+        self.tr = motor.Motor(pcaInst, trP, mcpInst, trC, enPin)
 
         self.state = Command.Stop
 
         self.defaultSpeed = 0.2
         self.shiftGain = 1.25
+
+        self.enPin = enPin
 
         return    # }}}
 

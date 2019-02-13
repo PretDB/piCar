@@ -86,7 +86,7 @@ def initiation():
         wiringpi.wiringPiSetup()
         wiringpi.pinMode(28, wiringpi.OUTPUT)
         wiringpi.digitalWrite(28, wiringpi.HIGH)
-        car = mecanum.Mecanum(pwm, 0, 1, 2, 3, pins, 1, 2, 3, 4)
+        car = mecanum.Mecanum(pwm, 0, 1, 2, 3, pins, 1, 2, 3, 4, 28)
         car.defaultSpeed = 0.2
         car.move(Command.Stop)
 
@@ -137,13 +137,13 @@ def initiation():
 # }}}
 
 
-# Main process
+# Main process {{{
 if __name__ == "__main__":
     isDebug = len(sys.argv) > 1
 
     initiation()
 
-# Loop {{{
+    # Loop {{{
     try:
         while True:
             com = Command(recvCom.value)
@@ -172,8 +172,9 @@ if __name__ == "__main__":
                 trackThread.run()
                 pass
             pass
+    # }}}
 
-# Exception {{{
+    # Exception {{{
     except(KeyboardInterrupt):
         if isDebug:
             pass
@@ -187,5 +188,5 @@ if __name__ == "__main__":
 
         print(traceback.format_exc())
         sys.exit(-1)
-# }}}
+    # }}}
 # }}}
