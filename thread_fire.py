@@ -20,12 +20,14 @@ class FireFunc(threading.Thread):    # {{{
     def run(self):
         while True:
             if bool(self.fire.value):
-                if self.pins.digitalRead(self.detect) == 0:
-                    self.pins.digitalWrite(self.control, 1)
+                if self.pins.digitalRead(self.detect) == self.pins.LOW:
+                    self.pins.digitalWrite(self.control, self.pins.LOW)
                     time.sleep(1)
                 else:
-                    self.pins.digitalWrite(self.control, 0)
-                    pass
+                    self.pins.digitalWrite(self.control, self.pins.LOW)
+            # The fan should be shut down when fire is disabled.
+            else:
+                self.pins.digitalWrite(self.control, self.pins.LOW)
 
             time.sleep(0.2)
         pass
