@@ -19,15 +19,11 @@ class Motor:
     # inverse = True or 1 for inverse
     def rotate(self, inverse, speed):
         if not inverse:
-            wiringpi.digitalWrite(self.enPin, wiringpi.LOW)
             self.mcp.digitalWrite(self.invPin, 0)
             self.pca.setChannelValue_ratio(self.pwmChannel, 0, speed)
-            wiringpi.digitalWrite(self.enPin, wiringpi.HIGH)
         else:
-            wiringpi.digitalWrite(self.enPin, wiringpi.LOW)
             self.mcp.digitalWrite(self.invPin, 1)
             self.pca.setChannelValue_ratio(self.pwmChannel, 0, 1 - speed)
-            wiringpi.digitalWrite(self.enPin, wiringpi.HIGH)
         return
 
     def stop(self):
