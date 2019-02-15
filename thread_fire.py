@@ -21,7 +21,7 @@ class FireFunc(threading.Thread):    # {{{
         while True:
             if bool(self.fire.value):
                 if self.pins.digitalRead(self.detect) == self.pins.LOW:
-                    self.pins.digitalWrite(self.control, self.pins.LOW)
+                    self.pins.digitalWrite(self.control, self.pins.HIGH)
                     time.sleep(1)
                 else:
                     self.pins.digitalWrite(self.control, self.pins.LOW)
