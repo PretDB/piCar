@@ -3,11 +3,12 @@ import sys
 import socket
 import time
 import json
+import spidev
 import serial
+import qmc
 import locator
 import random
 import filter
-import fake
 
 isDebug = len(sys.argv) > 1
 
@@ -16,6 +17,11 @@ fieldY = 1
 lastLoc = (0.1, 0.1)
 
 if not isDebug:
+    spi = spidev.SpiDev()
+    spi.open(0, 0)
+    spi.max_speed_hz = 5000
+
+
     # Hardware Initializations
     ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=0.3)
     # Filter should be treat as a thread
@@ -23,13 +29,10 @@ if not isDebug:
 
     fieldX = 6
     fieldY = 4
-    import qmc
-    compass = qmc.QMC(True)
-    id = int(socket.gethostname())
-else:
-    compass = fake.QMC()
-    id = 1
 
+id = int(socket.gethostname())
+
+compass = qmc.QMC(True)
 
 # Network Initializations
 address = ('<broadcast>', 6868)
@@ -102,12 +105,27 @@ def GetLoc():
 while True:
     heartbeatCount = heartbeatCount + 1
 
+    # Get location data
+    # Debug mode:
+    loc = None
+    leg = False
+    if not isDebug:
+        loc, leg = GetLoc()
+
+    ang = GetOri()
+    if loc is not None:
+        heartbeatPackage['Msg'] = {'position': loc, 'orientation': ang}
+    else:
+        heartbeatPackage['Msg'] = {'orientation': ang}
+
     dataRaw = json.dumps(heartbeatPackage)
     dataByte = dataRaw.encode('utf-8')
 
     s.sendto(dataByte, address)
     print('')
     print(time.ctime(), 'count: ', heartbeatCount, )
+    print('Loc: ', loc)
     print(id)
 
-    time.sleep(0.3)
+    if not leg:
+        time.sleep(0.3)
