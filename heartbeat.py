@@ -3,12 +3,7 @@ import sys
 import socket
 import time
 import json
-import spidev
-import serial
-import qmc
-import locator
 import random
-import filter
 
 isDebug = len(sys.argv) > 1
 
@@ -17,22 +12,11 @@ fieldY = 1
 lastLoc = (0.1, 0.1)
 
 if not isDebug:
-    spi = spidev.SpiDev()
-    spi.open(0, 0)
-    spi.max_speed_hz = 5000
-
-
-    # Hardware Initializations
-    ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=0.3)
-    # Filter should be treat as a thread
-    f = filter.Filter(ser)
-
     fieldX = 6
     fieldY = 4
 
 id = int(socket.gethostname())
 
-compass = qmc.QMC(True)
 
 # Network Initializations
 address = ('<broadcast>', 6868)
@@ -44,10 +28,6 @@ testS.close()
 s.bind(('', 9999))
 s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
-loketyr = locator.Locator()
-loketyr.start()
-
-
 
 heartbeatPackage = {'FromIP': localIP, 'FromID': id, 'FromRole': 'car',
                     'Type': 'heartbeat', 'Msg': None}
@@ -55,13 +35,6 @@ heartbeatPackage = {'FromIP': localIP, 'FromID': id, 'FromRole': 'car',
 
 heartbeatCount = 0
 c = 0
-
-
-def GetOri():
-    global compass
-
-    angle = compass.readAngle()
-    return round(angle)
 
 
 def GetLoc():
@@ -75,10 +48,10 @@ def GetLoc():
     x = lastLoc[0]
     y = lastLoc[1]
     t = 0
-    if (not isDebug) and f.lokeitid:
+    if (not isDebug):
         try:
             res = loketyr.loc
-            if not res == None:
+            if res is not None:
                 tag = res[0]
                 if str(id) == tag:
                     xVal = float(res[1])
@@ -112,11 +85,8 @@ while True:
     if not isDebug:
         loc, leg = GetLoc()
 
-    ang = GetOri()
     if loc is not None:
-        heartbeatPackage['Msg'] = {'position': loc, 'orientation': ang}
-    else:
-        heartbeatPackage['Msg'] = {'orientation': ang}
+        heartbeatPackage['Msg'] = {'position': loc}
 
     dataRaw = json.dumps(heartbeatPackage)
     dataByte = dataRaw.encode('utf-8')
