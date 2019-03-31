@@ -98,7 +98,7 @@ class Locator():
             pass
         self.logger.info('Len %s loaded.' % (lens))
 
-        self.cam['dev'] = cv2.VideoCapture('/dev/video1')
+        self.cam['dev'] = cv2.VideoCapture('/dev/locator')
         # Test camera
         self.logger.info('Setting camera parameter: %s' %
                          ('Success' if
