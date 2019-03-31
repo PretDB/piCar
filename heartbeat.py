@@ -7,7 +7,7 @@ import random
 
 isDebug = len(sys.argv) > 1
 
-name = socket.gethostname()
+name = int(socket.gethostname())
 
 
 # Network Initializations
@@ -21,8 +21,7 @@ s.bind(('', 9999))
 s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
 
-heartbeatPackage = {'FromIP': localIP, 'FromName': name, 'FromRole': 'car',
-                    'Type': 'heartbeat', 'Msg': None}
+heartbeatPackage = {'FromID': name, 'Type': 'heartbeat', 'Msg': None}
 
 
 heartbeatCount = 0
