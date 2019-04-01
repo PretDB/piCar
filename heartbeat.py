@@ -7,7 +7,8 @@ import random
 
 isDebug = len(sys.argv) > 1
 
-name = socket.gethostname()
+# name = socket.gethostname()
+name = 1
 
 
 # Network Initializations
@@ -21,7 +22,7 @@ s.bind(('', 9999))
 s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
 
-heartbeatPackage = {'FromIP': localIP, 'FromName': name, 'FromRole': 'car',
+heartbeatPackage = {'FromIP': localIP, 'FromID': name, 'FromRole': 'car',
                     'Type': 'heartbeat', 'Msg': None}
 
 
@@ -34,7 +35,7 @@ while True:
     dataByte = dataRaw.encode('utf-8')
 
     s.sendto(dataByte, address)
-    print('')
+    print(dataRaw)
     print(time.ctime(), 'count: ', heartbeatCount, )
 
     time.sleep(0.5)

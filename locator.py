@@ -16,7 +16,7 @@ import json
 class Locator():
     def __init__(self, benchmark=False, lens=0, release=True):
         # Initialize network
-        self.targetAddress = ('<broadcast>', 6875)
+        self.targetAddress = ('<broadcast>', 6868)
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         testS = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -27,9 +27,7 @@ class Locator():
         self.socket.bind(('', 6875))
 
         # Initiate hearbeat package
-        self.heartbeatPackage = {'FromIP': self.localIP,
-                                 'FromName': self.deviceName,
-                                 'FromRole': 'locator',
+        self.heartbeatPackage = {'FromID': 1,
                                  'Type': 'locate',
                                  'Msg': None}
         self.heartbeatCount = 0
@@ -73,28 +71,24 @@ class Locator():
                                      numpy.float32)
         self.cam = dict()
         if lens == 1:
-            self.cam['inst'] = numpy.array([[788.893678755818,
-                                             0, 932.290999805616],
-                                            [0, 787.427354652960,
-                                             529.198843943091],
+            self.cam['inst'] = numpy.array([[543.8368, 0, 631.7431],
+                                            [0, 542.7832, 352.6432],
                                             [0, 0, 1]])
-            self.cam['dist'] = numpy.array([-0.217131042436646,
-                                            0.0403307733242417,
-                                            -0.00121853913549975,
-                                            0.000367520074923063,
-                                            -0.00325660495212412])
+            self.cam['dist'] = numpy.array([-0.2667,
+                                            0.0648,
+                                            -1.4602e-4,
+                                            0.0020,
+                                            -0.0069])
             pass
         else:
-            self.cam['inst'] = numpy.array([[788.893678755818,
-                                             0, 932.290999805616],
-                                            [0, 787.427354652960,
-                                             529.198843943091],
+            self.cam['inst'] = numpy.array([[543.8368, 0, 631.7431],
+                                            [0, 542.7832, 352.6432],
                                             [0, 0, 1]])
-            self.cam['dist'] = numpy.array([-0.217131042436646,
-                                            0.0403307733242417,
-                                            -0.00121853913549975,
-                                            0.000367520074923063,
-                                            -0.00325660495212412])
+            self.cam['dist'] = numpy.array([-0.2667,
+                                            0.0648,
+                                            -1.4602e-4,
+                                            0.0020,
+                                            -0.0069])
             pass
         self.logger.info('Len %s loaded.' % (lens))
 
@@ -112,10 +106,11 @@ class Locator():
             self.logger.info('Attempt to read image from camera at ' +
                              ('%s tries: %s') %
                              (i + 1, 'Success' if read else 'Failed'))
-            if i == 2:
-                self.logger.critical('Camera is not available.')
             if read:
                 break
+            else:
+                if i == 2:
+                    self.logger.critical('Camera is not available.')
 
         pass
 
@@ -123,6 +118,7 @@ class Locator():
         while True:
             last = time.time()
             read, img = self.cam['dev'].read()
+            tvec, rvec = None, None
             if read:
                 tvec, rvec = self.__locator(img)
 
@@ -135,22 +131,23 @@ class Locator():
                         key = cv2.waitKey(0)
                     if key == ord('q'):
                         break
-
-                if tvec is not None or rvec is not None:
-                    loc = {'X': round(tvec[0]),
-                           'Y': round(tvec[1]),
-                           'Z': round(tvec[2])}
-                    ang = round(rvec)
-                    self.heartbeatPackage['Msg'] = {'position': loc,
-                                                    'angle': ang}
-                    dataRaw = json.dumps(self.heartbeatPackage)
-                    dataByte = dataRaw.encode('utf-8')
-                    self.socket.sendto(dataByte, self.targetAddress)
-                    print(dataRaw)
             else:
                 continue
+
+            if tvec is not None or rvec is not None:
+                loc = {'X': round(tvec[0], 2),
+                       'Y': round(tvec[1], 2),
+                       'Z': round(tvec[2], 2)}
+                ang = round(rvec) + 90
+                self.heartbeatPackage['Msg'] = {'position': loc,
+                                                'orientation': ang}
+                dataRaw = json.dumps(self.heartbeatPackage)
+                dataByte = dataRaw.encode('utf-8')
+                self.socket.sendto(dataByte, self.targetAddress)
+                print(dataRaw)
             fps = round(1.0 / (time.time() - last), 1)
 
+            self.isBenchmark = True
             if self.isBenchmark:
                 self.logger.info('FPS: %s', fps)
 
@@ -158,7 +155,7 @@ class Locator():
         pass
 
     def __validateContour(self, contour):
-        if cv2.contourArea(contour) < 300:
+        if cv2.contourArea(contour) < 500:
             return False
 
         # Filter by number of contours approxed whoes precision is defiened
@@ -179,7 +176,7 @@ class Locator():
 
     def __detectMarker(self, img):
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        th, binaryImg = cv2.threshold(gray, 250, 255, cv2.THRESH_TRIANGLE)
+        th, binaryImg = cv2.threshold(gray, 250, 255, cv2.THRESH_BINARY)
         binaryImg = cv2.morphologyEx(binaryImg, cv2.MORPH_CLOSE, (21, 21))
         c, contours, hierarchy = cv2.findContours(binaryImg,
                                                   cv2.RETR_TREE,
@@ -226,7 +223,7 @@ class Locator():
         loc = None
         rot = None
         if self.isRelease:
-            validContours, = self.__detectMarker(image)
+            validContours = self.__detectMarker(image)
         else:
             validContours, binaryImg, image = self.__detectMarker(image)
 
@@ -362,7 +359,10 @@ class Locator():
                             round(tvec[2][0], 2))
                 loc = printLoc
                 rot = angZ
-                markedImg = cv2.putText(markedImg, str(printLoc), (0, 100),
+                loc = (round((loc[0] / 1000.0 + 3) / 6, 2),
+                       round((loc[1] / 1000.0 + 2) / 4, 2),
+                       round(loc[2]  / 1000.0, 2))
+                markedImg = cv2.putText(markedImg, str(loc), (0, 100),
                                         cv2.FONT_HERSHEY_COMPLEX_SMALL, 2,
                                         (150, 50, 150))
 
@@ -382,9 +382,9 @@ class Locator():
                                               (round(markedImg.shape[1] / 2),
                                                round(markedImg.shape[0] / 2))))
 
-        cv2.imshow('bina', cv2.resize(binaryImg,
-                                      (round(binaryImg.shape[1] / 2),
-                                       round(binaryImg.shape[0] / 2))))
+                cv2.imshow('bina', cv2.resize(binaryImg,
+                                              (round(binaryImg.shape[1] / 2),
+                                               round(binaryImg.shape[0] / 2))))
         return loc, rot
 
 
