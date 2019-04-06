@@ -11,11 +11,16 @@ import math
 import random
 import socket
 import json
+import pca
+import servo
 
 
-class Locator():
-    def __init__(self, benchmark=False, lens=0, release=True):
-        # Initialize network
+class Locator():    # {{{
+    def __init__(self, benchmark=False,
+                 lens=0,
+                 release=True,
+                 useServo=False):    # {{{
+        # Initiate network {{{
         self.targetAddress = ('<broadcast>', 6868)
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
@@ -24,21 +29,27 @@ class Locator():
         self.localIP = testS.getsockname()[0]
         self.deviceName = (socket.gethostname())
         testS.close()
-        self.socket.bind(('', 9999))
+        self.socket.bind(('', 9999))    # }}}
 
-        # Initiate hearbeat package
+        # Servo initiation if needed. {{{
+        if useServo:
+            pwm = pca.PCA()
+            self.servo = servo.Servo(pwm, 4, maxAngle=270)
+            self.servo.setAngle(self.servo.maxAngle)
+            pass
+        # }}}
+
+        # Initiate hearbeat package {{{
         self.heartbeatPackage = {'FromID': 1,
                                  'Type': 'locate',
-                                 'Msg': None}
-        self.heartbeatCount = 0
+                                 'Msg': None}    # }}}
 
-        if not release:
-            cv2.namedWindow('raw')
-
+        # Initiate logger. {{{
         self.logger = logging.getLogger()
         self.logger.setLevel(logging.NOTSET)
 
-        termFormatter = logging.Formatter('%(levelname)-10s %(message)s')
+        termFormatter = logging.Formatter('%(asctime)s '
+                                          + '%(levelname)-10s %(message)s')
         fileFormatter = logging.Formatter('[%(asctime)s] ' +
                                           '%(filename)s:%(lineno)-4d ' +
                                           '[%(levelname)s] ' +
@@ -58,16 +69,18 @@ class Locator():
             hterm.setLevel(logging.DEBUG)
         logging.getLogger('').addHandler(hterm)
         self.logger.addHandler(hterm)
-        self.logger.addHandler(hfile)
+        self.logger.addHandler(hfile)    # }}}
 
+        # Log basic configurations. {{{
         self.logger.info('Locator initiation started.')
 
         self.isBenchmark = benchmark
         self.isRelease = release
         self.logger.info('Benchmark: ' + str(benchmark))
         self.logger.info('Release:' + str(release))
+        self.logger.ingo('Use servo: ' + str(useServo))    # }}}
 
-        # Device and environment initiation
+        # Device and environment initiation {{{
         self.objPoints = numpy.array([[-1000.0, -750.0, 0],
                                       [1000.0, -750.0, 0],
                                       [1000.0, 750.0, 0],
@@ -115,33 +128,38 @@ class Locator():
             else:
                 if i == 2:
                     self.logger.critical('Camera is not available.')
+        # }}}
 
         self.tvec, self.rvec = None, None
         self.logger.info('Locator initiation done, start main thread.')
-        pass
+        if not release:
+            cv2.namedWindow('raw')
+        pass    # }}}
 
-    def run(self):
+    def run(self):    # {{{
         self.logger.info('Main thread running.')
         while True:
             last = time.time()
             read, img = self.cam['dev'].read()
             if read:
-                self.tvec, self.rvec = self.__locator(img)
+                tvec, rvec = self.__locator(img)
 
-                if self.tvec is not None or self.rvec is not None:
-                    loc = {'X': round(self.tvec[0], 2),
-                           'Y': round(self.tvec[1], 2),
-                           'Z': round(self.tvec[2], 2)}
-                    ang = round(self.rvec) + 90
+                if tvec is not None or rvec is not None:
+                    loc = {'X': round(tvec[0], 2),
+                           'Y': round(tvec[1], 2),
+                           'Z': round(tvec[2], 2)}
+                    ang = round(rvec) + 90
                     self.heartbeatPackage['Msg'] = {'position': loc,
                                                     'orientation': ang}
+                    self.tvec, self.rvec = tvec, rvec
                     dataRaw = json.dumps(self.heartbeatPackage)
                     dataByte = dataRaw.encode('utf-8')
                     self.socket.sendto(dataByte, self.targetAddress)
                     self.logger.debug(dataRaw)
                 else:
                     if self.isRelease:
-                        self.logger.warning('Locate failed, last loc %s'
+                        self.logger.warning('Locate failed, no valid loc got, '
+                                            + 'last loc %s'
                                             % str(self.tvec) +
                                             ', last orien: %s'
                                             % str(self.rvec))
@@ -164,9 +182,9 @@ class Locator():
                 if self.isRelease:
                     self.logger.error('locate Failed, can not get image')
                 continue
-        pass
+        pass    # }}}
 
-    def __validateContour(self, contour):
+    def __validateContour(self, contour):    # {{{
         area = cv2.contourArea(contour)
         if area < 200 or area > 5000:
             return False
@@ -185,9 +203,9 @@ class Locator():
         if cv2.contourArea(contour) / cv2.contourArea(minRect) <= 0.6:
             return False
 
-        return True
+        return True    # }}}
 
-    def __detectMarker(self, img):
+    def __detectMarker(self, img):    # {{{
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         th, binaryImg = cv2.threshold(gray, 250, 255, cv2.THRESH_BINARY)
         binaryImg = cv2.morphologyEx(binaryImg, cv2.MORPH_CLOSE, (21, 21))
@@ -231,8 +249,9 @@ class Locator():
                               5,
                               (0, 255, 0))
             return validContours, binaryImg, img
+        pass    # }}}
 
-    def __locator(self, image):
+    def __locator(self, image):    # {{{
         loc = None
         rot = None
         if self.isRelease:
@@ -328,15 +347,11 @@ class Locator():
                 corners = numpy.append(corners, cor, axis=1)
             corners = corners[:, 1: len(corners[0]), :]
             self.logger.debug('Corners: ' + str(corners))
-            try:
-                retval, rvec, tvec = cv2.solvePnP(self.objPoints,
-                                                  corners,
-                                                  self.cam['inst'],
-                                                  self.cam['dist'],
-                                                  flags=cv2.SOLVEPNP_ITERATIVE)
-            except:
-                cv2.waitKey(0)
-                return loc, rot
+            retval, rvec, tvec = cv2.solvePnP(self.objPoints,
+                                              corners,
+                                              self.cam['inst'],
+                                              self.cam['dist'],
+                                              flags=cv2.SOLVEPNP_ITERATIVE)
 
             # Calculate camera pose.
             rotMat = cv2.Rodrigues(rvec)[0]
@@ -355,6 +370,14 @@ class Locator():
             # c2wTVec = camLocInWldMat
 
             angZ = math.atan2(rotMat[1][0], rotMat[0][0]) / math.pi * 180
+            printLoc = (round(tvec[0][0], 2),
+                        round(tvec[1][0], 2),
+                        round(tvec[2][0], 2))
+            loc = printLoc
+            rot = angZ
+            loc = (round((loc[0] / 1000.0 + 3) / 6, 2),
+                   round((loc[1] / 1000.0 + 2) / 4, 2),
+                   round(loc[2] / 1000.0, 2))
 
             # Draw
             if not self.isRelease:
@@ -395,14 +418,6 @@ class Locator():
                                      round(encCircle[1]),
                                      (100, 0, 200), 1)
                 self.logger.debug('approx: ' + str(approximatedContours))
-                printLoc = (round(tvec[0][0], 2),
-                            round(tvec[1][0], 2),
-                            round(tvec[2][0], 2))
-                loc = printLoc
-                rot = angZ
-                loc = (round((loc[0] / 1000.0 + 3) / 6, 2),
-                       round((loc[1] / 1000.0 + 2) / 4, 2),
-                       round(loc[2] / 1000.0, 2))
                 markedImg = cv2.putText(markedImg, str(loc), (0, 100),
                                         cv2.FONT_HERSHEY_COMPLEX_SMALL, 2,
                                         (150, 50, 150))
@@ -432,14 +447,16 @@ class Locator():
                                               (round(binaryImg.shape[1] / 2),
                                                round(binaryImg.shape[0] / 2))))
 
-        return loc, rot
+        return loc, rot    # }}}
+# }}}
 
 
 benchmark = False
 release = False
 lens = 0
+useServo = False
 
-opts, args = getopt.getopt(sys.argv[1:], 'hbl:r')
+opts, args = getopt.getopt(sys.argv[1:], 'hbl:rs')
 for key, val in opts:
     if key == '-h':
         print('Usage: run [-h] [-b] [-l len] [-d]')
@@ -459,6 +476,11 @@ for key, val in opts:
             pass
     if key == '-r':
         release = True
+    if key == '-s':
+        useServo = True
 
-lctr = Locator(benchmark=benchmark, lens=lens, release=release)
+lctr = Locator(benchmark=benchmark,
+               lens=lens,
+               release=release,
+               useServo=useServo)
 lctr.run()
