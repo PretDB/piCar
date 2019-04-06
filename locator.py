@@ -148,7 +148,7 @@ class Locator():    # {{{
                     loc = {'X': round(tvec[0], 2),
                            'Y': round(tvec[1], 2),
                            'Z': round(tvec[2], 2)}
-                    ang = round(rvec) + 90
+                    ang = round(rvec) + 180
                     self.heartbeatPackage['Msg'] = {'position': loc,
                                                     'orientation': ang}
                     self.tvec, self.rvec = tvec, rvec
