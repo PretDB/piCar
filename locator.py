@@ -27,7 +27,7 @@ class Locator():    # {{{
         testS = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         testS.connect(('8.8.8.8', 80))
         self.localIP = testS.getsockname()[0]
-        self.deviceName = int(socket.gethostname())
+        self.deviceName = int(socket.gethostname()) - 10
         testS.close()
         self.socket.bind(('', 9999))    # }}}
 
@@ -190,7 +190,7 @@ class Locator():    # {{{
 
     def __validateContour(self, contour):    # {{{
         area = cv2.contourArea(contour)
-        if area < 200 or area > 5000:
+        if area < 500 or area > 5000:
             return False
 
         # Filter by number of contours approxed whoes precision is defiened
