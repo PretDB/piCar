@@ -35,7 +35,7 @@ class Locator():    # {{{
         if useServo:
             pwm = pca.PCA()
             self.servo = servo.Servo(pwm, 4, maxAngle=270)
-            self.servo.setAngle(self.servo.maxAngle)
+            self.servo.setAngle(self.servo.maxAngle / 2)
             pass
         # }}}
 
@@ -78,7 +78,7 @@ class Locator():    # {{{
         self.isRelease = release
         self.logger.info('Benchmark: ' + str(benchmark))
         self.logger.info('Release:' + str(release))
-        self.logger.ingo('Use servo: ' + str(useServo))    # }}}
+        self.logger.info('Use servo: ' + str(useServo))    # }}}
 
         # Device and environment initiation {{{
         self.objPoints = numpy.array([[-1000.0, -750.0, 0],
