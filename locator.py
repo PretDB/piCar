@@ -55,7 +55,7 @@ class Locator():
         elif release:
             hterm.setLevel(logging.INFO)
         else:
-            hterm.setLevel(logging.INFO)
+            hterm.setLevel(logging.DEBUG)
         logging.getLogger('').addHandler(hterm)
         self.logger.addHandler(hterm)
         self.logger.addHandler(hfile)
@@ -167,21 +167,22 @@ class Locator():
         pass
 
     def __validateContour(self, contour):
-        if cv2.contourArea(contour) < 400:
+        area = cv2.contourArea(contour)
+        if area < 200 or area > 5000:
             return False
 
         # Filter by number of contours approxed whoes precision is defiened
         # by its length.
-        precision = 0.1 * cv2.arcLength(contour, closed=True)
-        approxContour = cv2.approxPolyDP(contour, precision, closed=True)
-        if not len(approxContour) == 4:
-            return False
+        # precision = 0.1 * cv2.arcLength(contour, closed=True)
+        # approxContour = cv2.approxPolyDP(contour, precision, closed=True)
+        # if not len(approxContour) == 4:
+        #     return False
 
         # Filter by similarity between contour and its minimum binding
         # rectangle.
         minRect = cv2.minAreaRect(contour)
         minRect = cv2.boxPoints(minRect)
-        if cv2.contourArea(contour) / cv2.contourArea(minRect) <= 0.7:
+        if cv2.contourArea(contour) / cv2.contourArea(minRect) <= 0.6:
             return False
 
         return True
@@ -366,6 +367,11 @@ class Locator():
                 for p in centriods:
                     loc = (int(round(p[0])), int(round(p[1])))
                     calcImg = cv2.circle(calcImg, loc, 10, (0, 0, 255), 1)
+                calcImg = cv2.circle(calcImg,
+                                     (round(encCircle[0][0]),
+                                      round(encCircle[0][1])),
+                                     round(encCircle[1]),
+                                     (100, 0, 200), 1)
                 printLoc = (round(tvec[0][0], 2),
                             round(tvec[1][0], 2),
                             round(tvec[2][0], 2))
