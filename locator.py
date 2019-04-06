@@ -27,7 +27,7 @@ class Locator():    # {{{
         testS = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         testS.connect(('8.8.8.8', 80))
         self.localIP = testS.getsockname()[0]
-        self.deviceName = (socket.gethostname())
+        self.deviceName = int(socket.gethostname())
         testS.close()
         self.socket.bind(('', 9999))    # }}}
 
@@ -40,7 +40,7 @@ class Locator():    # {{{
         # }}}
 
         # Initiate hearbeat package {{{
-        self.heartbeatPackage = {'FromID': 1,
+        self.heartbeatPackage = {'FromID': self.deviceName,
                                  'Type': 'locate',
                                  'Msg': None}    # }}}
 
@@ -108,9 +108,9 @@ class Locator():    # {{{
                                             -0.0069])
             pass
         self.logger.info('Len %s loaded.' % (lens))
+        self.cam['dev'] = cv2.VideoCapture('/dev/locator')    # }}}
 
-        self.cam['dev'] = cv2.VideoCapture('/dev/locator')
-        # Test camera
+        # Test camera {{{
         self.logger.info('Setting camera parameter: %s' %
                          ('Success' if
                           (self.cam['dev'].set(cv2.CAP_PROP_FRAME_HEIGHT,
@@ -141,10 +141,10 @@ class Locator():    # {{{
         while True:
             last = time.time()
             read, img = self.cam['dev'].read()
-            if read:
+            if read:    # {{{
                 tvec, rvec = self.__locator(img)
 
-                if tvec is not None or rvec is not None:
+                if tvec is not None or rvec is not None:    # {{{
                     loc = {'X': round(tvec[0], 2),
                            'Y': round(tvec[1], 2),
                            'Z': round(tvec[2], 2)}
@@ -156,13 +156,16 @@ class Locator():    # {{{
                     dataByte = dataRaw.encode('utf-8')
                     self.socket.sendto(dataByte, self.targetAddress)
                     self.logger.debug(dataRaw)
-                else:
+                    # }}}
+                else:    # {{{
                     if self.isRelease:
                         self.logger.warning('Locate failed, no valid loc got, '
                                             + 'last loc %s'
                                             % str(self.tvec) +
                                             ', last orien: %s'
                                             % str(self.rvec))
+                # }}}
+
                 fps = round(1.0 / (time.time() - last), 1)
 
                 if self.isBenchmark:
@@ -177,11 +180,12 @@ class Locator():    # {{{
                         key = cv2.waitKey(0)
                     if key == ord('q'):
                         break
-
-            else:
+            # }}}
+            else:    # {{{
                 if self.isRelease:
                     self.logger.error('locate Failed, can not get image')
                 continue
+            # }}}
         pass    # }}}
 
     def __validateContour(self, contour):    # {{{
@@ -263,19 +267,19 @@ class Locator():    # {{{
                               numpy.uint8)
         markedImg = image
 
-        if len(validContours) == 5:
+        if len(validContours) == 5:    # Got valid contours {{{
             self.logger.debug('=============== One Epoch ===================')
             # Calculate the miniman enclosing circle
             centriods = [p['centriod'] for p in validContours]
             centriodsArray = numpy.array(centriods, numpy.float32)
 
-            # Remove marker
+            # Remove marker {{{
             encCircle = cv2.minEnclosingCircle(centriodsArray)
             epsilon = 10
             approximatedContours = cv2.approxPolyDP(centriodsArray,
                                                     epsilon,
                                                     closed=True)
-            while not len(approximatedContours) == 4:
+            while not len(approximatedContours) == 4:    # {{{
                 epsilon = epsilon + 5
                 approximatedContours = cv2.approxPolyDP(centriodsArray,
                                                         epsilon,
@@ -283,6 +287,7 @@ class Locator():    # {{{
                 if epsilon > 200:
                     self.logger.debug('Approx Failed!')
                     return loc, rot
+                # }}}
             self.logger.debug('approximatedContours: '
                               + str(approximatedContours))
             self.logger.debug('centriodsArray: ' + str(centriodsArray))
@@ -293,8 +298,9 @@ class Locator():    # {{{
                     avgDis.append(c)
                 else:
                     marker = c
+            # }}}
 
-            # Get X and Y axis
+            # Get X and Y axis {{{
             y = numpy.array([marker[0] - encCircle[0][0],
                              marker[1] - encCircle[0][1]],
                             numpy.float32)
@@ -310,8 +316,9 @@ class Locator():    # {{{
                       int(round(encCircle[0][1] + xAxisImg[1])))
             yArrow = (int(round(encCircle[0][0] + yAxisImg[0])),
                       int(round(encCircle[0][1] + yAxisImg[1])))
+            # }}}
 
-            # Calculate affine matrix
+            # Calculate affine matrix. {{{
             imagPoints = numpy.array([xArrow, encCircle[0], yArrow],
                                      numpy.float32)
             cplxPoints = numpy.array([[numpy.linalg.norm(xAxisImg), 0],
@@ -319,8 +326,9 @@ class Locator():    # {{{
                                       [0, numpy.linalg.norm(yAxisImg)]],
                                      numpy.float32)
             affineMat = cv2.getAffineTransform(imagPoints, cplxPoints)
+            # }}}
 
-            # Warp affine transform onto points ( marker excepted )
+            # Warp affine transform onto points ( marker excepted ) {{{
             pointsComplex = list()
             self.logger.debug('avgDis: ' + str(avgDis))
             for point in avgDis:
@@ -328,8 +336,9 @@ class Locator():    # {{{
                 pAffined = numpy.matmul(affineMat, p)
                 pointsComplex.append(numpy.array([pAffined, point],
                                                  numpy.float32))
+            # }}}
 
-            # Calculate angle in comples corrdinate
+            # Calculate angle in comples corrdinate. {{{
             pointsAngle = list()
             self.logger.debug('pointsComplex: ' + str(pointsComplex))
             for pc in pointsComplex:
@@ -339,8 +348,9 @@ class Locator():    # {{{
                     angle += cmath.pi * 2
                 pointsAngle.append([pc, angle])
             pointsAngle.sort(key=(lambda x: x[1]), reverse=True)
+            # }}}
 
-            # Pose estimating
+            # Pose estimating {{{
             corners = numpy.zeros([1, 1, 2])
             for p in pointsAngle:
                 cor = numpy.array([p[0][1]], dtype=numpy.float32, ndmin=3)
@@ -352,8 +362,9 @@ class Locator():    # {{{
                                               self.cam['inst'],
                                               self.cam['dist'],
                                               flags=cv2.SOLVEPNP_ITERATIVE)
+            # }}}
 
-            # Calculate camera pose.
+            # Calculate camera pose. {{{
             rotMat = cv2.Rodrigues(rvec)[0]
             w2cMatHomo = numpy.append(rotMat, tvec, axis=1)
             w2cMatHomo = numpy.append(w2cMatHomo,
@@ -378,8 +389,9 @@ class Locator():    # {{{
             loc = (round((loc[0] / 1000.0 + 3) / 6, 2),
                    round((loc[1] / 1000.0 + 2) / 4, 2),
                    round(loc[2] / 1000.0, 2))
+            # }}}
 
-            # Draw
+            # Draw {{{
             if not self.isRelease:
                 calcImg = cv2.line(calcImg, o, xArrow, (100, 100, 100), 2)
                 calcImg = cv2.putText(calcImg,
@@ -410,8 +422,8 @@ class Locator():    # {{{
                     color = (color[0], color[1] + 60, color[2])
 
                 for p in centriods:
-                    loc = (int(round(p[0])), int(round(p[1])))
-                    calcImg = cv2.circle(calcImg, loc, 10, (0, 0, 255), 1)
+                    location = (int(round(p[0])), int(round(p[1])))
+                    calcImg = cv2.circle(calcImg, location, 10, (0, 0, 255), 1)
                 calcImg = cv2.circle(calcImg,
                                      (round(encCircle[0][0]),
                                       round(encCircle[0][1])),
@@ -440,7 +452,9 @@ class Locator():    # {{{
                 cv2.imshow('bina', cv2.resize(binaryImg,
                                               (round(binaryImg.shape[1] / 2),
                                                round(binaryImg.shape[0] / 2))))
+            # }}}
 
+            # }}}
         else:
             if not self.isRelease:
                 cv2.imshow('bina', cv2.resize(binaryImg,
