@@ -5,11 +5,11 @@ import sys
 import getopt
 import time
 import logging
+from logging.handlers import RotatingFileHandler
 import cmath
 import math
 import random
 import socket
-import time
 import json
 
 
@@ -24,7 +24,7 @@ class Locator():
         self.localIP = testS.getsockname()[0]
         self.deviceName = (socket.gethostname())
         testS.close()
-        self.socket.bind(('', 6875))
+        self.socket.bind(('', 9999))
 
         # Initiate hearbeat package
         self.heartbeatPackage = {'FromID': 1,
@@ -35,33 +35,37 @@ class Locator():
         if not release:
             cv2.namedWindow('raw')
 
-        if release:
-            hterm = logging.StreamHandler()
-            hterm.setLevel(logging.INFO)
-            hfile = logging.FileHandler('locator.log')
-            hfile.setLevel(logging.WARNING)
-            formater = logging.Formatter('%(asctime)s ' +
-                                         '%(filename)s[line:%(lineno)sd] ' +
-                                         '%(levelname)s %(message)s')
-            hterm.setFormatter(formater)
-            hfile.setFormatter(formater)
-        else:
-            hterm = logging.StreamHandler()
+        self.logger = logging.getLogger()
+        self.logger.setLevel(logging.NOTSET)
+
+        termFormatter = logging.Formatter('%(levelname)-10s %(message)s')
+        fileFormatter = logging.Formatter('[%(asctime)s] ' +
+                                          '%(filename)s:%(lineno)-4d ' +
+                                          '[%(levelname)s] ' +
+                                          '%(message)s')
+        hterm = logging.StreamHandler()
+        hterm.setFormatter(termFormatter)
+        hfile = RotatingFileHandler('locator.log',
+                                    maxBytes=10*1024*1024,
+                                    backupCount=10)
+        hfile.setFormatter(fileFormatter)
+        hfile.setLevel(logging.INFO)
+        if benchmark:
             hterm.setLevel(logging.DEBUG)
-            hfile = logging.FileHandler('locator.log')
-            hfile.setLevel(logging.DEBUG)
-            formater = logging.Formatter('%(asctime)s ' +
-                                         '%(filename)s[line:%(lineno)sd] ' +
-                                         '%(levelname)s %(message)s')
-            hterm.setFormatter(formater)
-            hfile.setFormatter(formater)
-        logger = logging.getLogger()
-        logger.addHandler(hterm)
-        logger.addHandler(hfile)
-        self.logger = logger
+        elif release:
+            hterm.setLevel(logging.INFO)
+        else:
+            hterm.setLevel(logging.INFO)
+        logging.getLogger('').addHandler(hterm)
+        self.logger.addHandler(hterm)
+        self.logger.addHandler(hfile)
+
+        self.logger.info('Locator initiation started.')
 
         self.isBenchmark = benchmark
         self.isRelease = release
+        self.logger.info('Benchmark: ' + str(benchmark))
+        self.logger.info('Release:' + str(release))
 
         # Device and environment initiation
         self.objPoints = numpy.array([[-1000.0, -750.0, 0],
@@ -112,15 +116,39 @@ class Locator():
                 if i == 2:
                     self.logger.critical('Camera is not available.')
 
+        self.tvec, self.rvec = None, None
+        self.logger.info('Locator initiation done, start main thread.')
         pass
 
     def run(self):
+        self.logger.info('Main thread running.')
         while True:
             last = time.time()
             read, img = self.cam['dev'].read()
-            tvec, rvec = None, None
             if read:
-                tvec, rvec = self.__locator(img)
+                self.tvec, self.rvec = self.__locator(img)
+
+                if self.tvec is not None or self.rvec is not None:
+                    loc = {'X': round(self.tvec[0], 2),
+                           'Y': round(self.tvec[1], 2),
+                           'Z': round(self.tvec[2], 2)}
+                    ang = round(self.rvec) + 90
+                    self.heartbeatPackage['Msg'] = {'position': loc,
+                                                    'orientation': ang}
+                    dataRaw = json.dumps(self.heartbeatPackage)
+                    dataByte = dataRaw.encode('utf-8')
+                    self.socket.sendto(dataByte, self.targetAddress)
+                    self.logger.debug(dataRaw)
+                else:
+                    if self.isRelease:
+                        self.logger.warning('Locate failed, last loc %s'
+                                            % str(self.tvec) +
+                                            ', last orien: %s'
+                                            % str(self.rvec))
+                fps = round(1.0 / (time.time() - last), 1)
+
+                if self.isBenchmark:
+                    self.logger.debug('FPS: %s', fps)
 
                 if not self.isRelease:
                     cv2.imshow('raw', cv2.resize(img,
@@ -131,31 +159,15 @@ class Locator():
                         key = cv2.waitKey(0)
                     if key == ord('q'):
                         break
+
             else:
+                if self.isRelease:
+                    self.logger.error('locate Failed, can not get image')
                 continue
-
-            if tvec is not None or rvec is not None:
-                loc = {'X': round(tvec[0], 2),
-                       'Y': round(tvec[1], 2),
-                       'Z': round(tvec[2], 2)}
-                ang = round(rvec) + 90
-                self.heartbeatPackage['Msg'] = {'position': loc,
-                                                'orientation': ang}
-                dataRaw = json.dumps(self.heartbeatPackage)
-                dataByte = dataRaw.encode('utf-8')
-                self.socket.sendto(dataByte, self.targetAddress)
-                print(dataRaw)
-            fps = round(1.0 / (time.time() - last), 1)
-
-            self.isBenchmark = True
-            if self.isBenchmark:
-                self.logger.info('FPS: %s', fps)
-
-            pass
         pass
 
     def __validateContour(self, contour):
-        if cv2.contourArea(contour) < 500:
+        if cv2.contourArea(contour) < 400:
             return False
 
         # Filter by number of contours approxed whoes precision is defiened
@@ -361,7 +373,7 @@ class Locator():
                 rot = angZ
                 loc = (round((loc[0] / 1000.0 + 3) / 6, 2),
                        round((loc[1] / 1000.0 + 2) / 4, 2),
-                       round(loc[2]  / 1000.0, 2))
+                       round(loc[2] / 1000.0, 2))
                 markedImg = cv2.putText(markedImg, str(loc), (0, 100),
                                         cv2.FONT_HERSHEY_COMPLEX_SMALL, 2,
                                         (150, 50, 150))
@@ -381,12 +393,43 @@ class Locator():
                 cv2.imshow('mark', cv2.resize(markedImg,
                                               (round(markedImg.shape[1] / 2),
                                                round(markedImg.shape[0] / 2))))
-
                 cv2.imshow('bina', cv2.resize(binaryImg,
                                               (round(binaryImg.shape[1] / 2),
                                                round(binaryImg.shape[0] / 2))))
+
+        else:
+            if not self.isRelease:
+                cv2.imshow('bina', cv2.resize(binaryImg,
+                                              (round(binaryImg.shape[1] / 2),
+                                               round(binaryImg.shape[0] / 2))))
+
         return loc, rot
 
 
-lctr = Locator(release=False)
+benchmark = False
+release = False
+lens = 0
+
+opts, args = getopt.getopt(sys.argv[1:], 'hbl:r')
+for key, val in opts:
+    if key == '-h':
+        print('Usage: run [-h] [-b] [-l len] [-d]')
+        print('-h: Show this help.')
+        print('-b: Run benchmark, print fps only.')
+        print('-l len: Select len, can be 0 or 1.')
+        print('-r: Run under release mode, use smaller marker.')
+        sys.exit(0)
+    if key == '-b':
+        benchmark = True
+    if key == '-l':
+        if val == '0':
+            pass
+        elif val == '1':
+            pass
+        else:
+            pass
+    if key == '-r':
+        release = True
+
+lctr = Locator(benchmark=benchmark, lens=lens, release=release)
 lctr.run()
