@@ -245,24 +245,39 @@ class Locator():
         markedImg = image
 
         if len(validContours) == 5:
+            self.logger.debug('=============== One Epoch ===================')
             # Calculate the miniman enclosing circle
             centriods = [p['centriod'] for p in validContours]
-            encCircle = cv2.minEnclosingCircle(numpy.array(centriods,
-                                                           numpy.int32))
+            centriodsArray = numpy.array(centriods, numpy.float32)
+
             # Remove marker
+            encCircle = cv2.minEnclosingCircle(centriodsArray)
+            epsilon = 10
+            approximatedContours = cv2.approxPolyDP(centriodsArray,
+                                                    epsilon,
+                                                    closed=True)
+            while not len(approximatedContours) == 4:
+                epsilon = epsilon + 5
+                approximatedContours = cv2.approxPolyDP(centriodsArray,
+                                                        epsilon,
+                                                        closed=True)
+                if epsilon > 200:
+                    self.logger.debug('Approx Failed!')
+                    return loc, rot
+            self.logger.debug('approximatedContours: '
+                              + str(approximatedContours))
+            self.logger.debug('centriodsArray: ' + str(centriodsArray))
             avgDis = list()
-            for point in centriods:
-                distanceToCenter = (((point[0] - encCircle[0][0]) ** 2 +
-                                     (point[1] - encCircle[0][1]) ** 2)
-                                    ** 0.5)
-                avgDis.append([point, distanceToCenter])
-            avgDis.sort(key=(lambda x: x[1]))
-            marker = avgDis[0]
-            avgDis.remove(marker)
+            marker = [0, 0]
+            for c in centriodsArray:
+                if c in approximatedContours[:, 0]:
+                    avgDis.append(c)
+                else:
+                    marker = c
 
             # Get X and Y axis
-            y = numpy.array([marker[0][0] - encCircle[0][0],
-                             marker[0][1] - encCircle[0][1]],
+            y = numpy.array([marker[0] - encCircle[0][0],
+                             marker[1] - encCircle[0][1]],
                             numpy.float32)
             yAxis3d = numpy.array([y[0], y[1], 0], numpy.float32)
             zAxis3d = numpy.array([0, 0, 1], numpy.float32)
@@ -288,14 +303,16 @@ class Locator():
 
             # Warp affine transform onto points ( marker excepted )
             pointsComplex = list()
+            self.logger.debug('avgDis: ' + str(avgDis))
             for point in avgDis:
-                p = numpy.array([point[0][0], point[0][1], 1], numpy.float32)
+                p = numpy.array([point[0], point[1], 1], numpy.float32)
                 pAffined = numpy.matmul(affineMat, p)
-                pointsComplex.append(numpy.array([pAffined, point[0]],
+                pointsComplex.append(numpy.array([pAffined, point],
                                                  numpy.float32))
 
             # Calculate angle in comples corrdinate
             pointsAngle = list()
+            self.logger.debug('pointsComplex: ' + str(pointsComplex))
             for pc in pointsComplex:
                 c = complex(pc[0][0], pc[0][1])
                 angle = cmath.log(c).imag
@@ -310,11 +327,16 @@ class Locator():
                 cor = numpy.array([p[0][1]], dtype=numpy.float32, ndmin=3)
                 corners = numpy.append(corners, cor, axis=1)
             corners = corners[:, 1: len(corners[0]), :]
-            retval, rvec, tvec = cv2.solvePnP(self.objPoints,
-                                              corners,
-                                              self.cam['inst'],
-                                              self.cam['dist'],
-                                              flags=cv2.SOLVEPNP_ITERATIVE)
+            self.logger.debug('Corners: ' + str(corners))
+            try:
+                retval, rvec, tvec = cv2.solvePnP(self.objPoints,
+                                                  corners,
+                                                  self.cam['inst'],
+                                                  self.cam['dist'],
+                                                  flags=cv2.SOLVEPNP_ITERATIVE)
+            except:
+                cv2.waitKey(0)
+                return loc, rot
 
             # Calculate camera pose.
             rotMat = cv2.Rodrigues(rvec)[0]
@@ -324,13 +346,13 @@ class Locator():
                                                   numpy.float32),
                                       axis=0)
             w2cMatHomo = numpy.matrix(w2cMatHomo)
-            c2wMat = w2cMatHomo.I
-            camLocInCamMat = numpy.append(numpy.array([0, 0, 0]), 1)
-            camLocInWldMat = numpy.matmul(c2wMat, camLocInCamMat)
-            c2wTVec = c2wMat[:3, 3]
-            c2wRMat = c2wMat[:3, :3]
-            c2wRVec = cv2.Rodrigues(c2wRMat)
-            c2wTVec = camLocInWldMat
+            # c2wMat = w2cMatHomo.I
+            # camLocInCamMat = numpy.append(numpy.array([0, 0, 0]), 1)
+            # camLocInWldMat = numpy.matmul(c2wMat, camLocInCamMat)
+            # c2wTVec = c2wMat[:3, 3]
+            # c2wRMat = c2wMat[:3, :3]
+            # c2wRVec = cv2.Rodrigues(c2wRMat)
+            # c2wTVec = camLocInWldMat
 
             angZ = math.atan2(rotMat[1][0], rotMat[0][0]) / math.pi * 180
 
@@ -372,6 +394,7 @@ class Locator():
                                       round(encCircle[0][1])),
                                      round(encCircle[1]),
                                      (100, 0, 200), 1)
+                self.logger.debug('approx: ' + str(approximatedContours))
                 printLoc = (round(tvec[0][0], 2),
                             round(tvec[1][0], 2),
                             round(tvec[2][0], 2))
