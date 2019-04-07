@@ -35,6 +35,10 @@ class Locator():    # {{{
         if useServo:
             pwm = pca.PCA()
             self.servo = servo.Servo(pwm, 4, maxAngle=270)
+            self.servo.setAngle(0)
+            time.sleep(2)
+            self.servo.setAngle(self.servo.maxAngle)
+            time.sleep(2)
             self.servo.setAngle(self.servo.maxAngle / 2)
             pass
         # }}}
@@ -149,6 +153,39 @@ class Locator():    # {{{
                            'Y': round(tvec[1], 2),
                            'Z': round(tvec[2], 2)}
                     ang = round(rvec) + 90
+
+                    if self.useServo:    # {{{
+                        thresh = 30
+                        expectedServoBias = 0
+                        if ang - 0 > thresh:
+                            expectedServoBias = -(ang - thresh)
+                            pass
+                        elif 360 - ang > thresh:
+                            expectedServoBias = (ang + thresh)
+                            pass
+                        elif ang - 180 > thresh:
+                            expectedServoBias = -(ang - thresh)
+                            pass
+                        elif 180 - ang > thresh:
+                            expectedServoBias = (ang + thresh)
+                            pass
+                        # Check servo angle.
+                        if self.servo.angle + expectedServoBias >\
+                                self.servo.maxAngle:
+                            self.servo.setAngle(self.servo.angle - 180)
+                            ang += 180
+                            time.sleep(2)
+                        if self.servo.angle + expectedServoBias < 0:
+                            self.servo.setAngle(self.servo.angle + 180)
+                            ang -= 180
+                            time.sleep(2)
+
+                        self.servo.setAngle(self.servo.angle
+                                            + expectedServoBias)
+                        ang += expectedServoBias
+
+                    # }}}
+
                     self.heartbeatPackage['Msg'] = {'position': loc,
                                                     'orientation': ang}
                     self.tvec, self.rvec = tvec, rvec
