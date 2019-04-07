@@ -148,18 +148,9 @@ class Locator():    # {{{
                     loc = {'X': round(tvec[0], 2),
                            'Y': round(tvec[1], 2),
                            'Z': round(tvec[2], 2)}
-                    ang = round(rvec) + 180
+                    ang = round(rvec)
                     self.heartbeatPackage['Msg'] = {'position': loc,
                                                     'orientation': ang}
-                    thresh = 30
-                    if rvec - 180 > thresh:
-                        pass
-                    elif 180 - rvec > thresh:
-                        pass
-                    elif rvec - 360 > thresh:
-                        pass
-                    elif 360 - rvec > thresh:
-                        pass
                     self.tvec, self.rvec = tvec, rvec
                     dataRaw = json.dumps(self.heartbeatPackage)
                     dataByte = dataRaw.encode('utf-8')
@@ -197,10 +188,12 @@ class Locator():    # {{{
             # }}}
         pass    # }}}
 
-    def __validateContour(self, contour, imgSize=(1280, 720)):    # {{{
+    def __validateContour(self, contour, img, imgSize=(1280, 720)):    # {{{
         area = cv2.contourArea(contour)
         if area < 500 or area > 5000:
             return False
+        # if not cv2.isContourConvex(contour):
+        #     return False
 
         # Filter by number of contours approxed whoes precision is defiened
         # by its length.
@@ -220,14 +213,23 @@ class Locator():    # {{{
         center = (moment['m10'] / moment['m00'],
                   moment['m01'] / moment['m00'])
         rate = 0.1
-        if center[0] < imgSize[0] * rate or center[0] > imgSize[0]:
+        if center[0] < imgSize[0] * rate or center[0] > imgSize[0] * 0.9:
+            return False
+
+        if img[round(center[1])][round(center[0])] < 250:
             return False
 
         return True    # }}}
 
     def __detectMarker(self, img):    # {{{
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        th, binaryImg = cv2.threshold(gray, 250, 255, cv2.THRESH_BINARY)
+        th, binaryImg = cv2.threshold(gray, 150, 255, cv2.THRESH_OTSU)
+        th, binaryImg = cv2.threshold(gray, 150, 255, cv2.THRESH_TOZERO)
+        # binaryImg = cv2.adaptiveThreshold(gray, 255,
+        #                                   cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+        #                                   cv2.THRESH_BINARY_INV,
+        #                                   41,
+        #                                   -20)
         binaryImg = cv2.morphologyEx(binaryImg, cv2.MORPH_CLOSE, (21, 21))
         c, contours, hierarchy = cv2.findContours(binaryImg,
                                                   cv2.RETR_TREE,
@@ -235,7 +237,7 @@ class Locator():    # {{{
 
         validContours = list()
         for i in range(len(contours)):
-            if not self.__validateContour(contours[i]):
+            if not self.__validateContour(contours[i], binaryImg):
                 continue
 
             moment = cv2.moments(contours[i], True)
@@ -255,7 +257,7 @@ class Locator():    # {{{
                                            contours,
                                            i,
                                            color,
-                                           2,
+                                           1,
                                            cv2.LINE_AA)
             except ZeroDivisionError:
                 continue
@@ -388,25 +390,23 @@ class Locator():    # {{{
                                                   numpy.float32),
                                       axis=0)
             w2cMatHomo = numpy.matrix(w2cMatHomo)
-            c2wMat = w2cMatHomo.I
-            camLocInCamMat = numpy.append(numpy.array([0, 0, 0]), 1)
-            camLocInWldMat = numpy.matmul(c2wMat, camLocInCamMat)
-            c2wTVec = c2wMat[:3, 3]
-            c2wRMat = c2wMat[:3, :3]
-            c2wRVec = cv2.Rodrigues(c2wRMat)
-            c2wTVec = camLocInWldMat
+            # c2wMat = w2cMatHomo.I
+            # camLocInCamMat = numpy.append(numpy.array([0, 0, 0]), 1)
+            # camLocInWldMat = numpy.matmul(c2wMat, camLocInCamMat)
+            # c2wTVec = c2wMat[:3, 3]
+            # c2wRMat = c2wMat[:3, :3]
+            # c2wRVec = cv2.Rodrigues(c2wRMat)
+            # c2wTVec = camLocInWldMat
 
-            angZ = math.atan2(c2wRMat[1][0], c2wRVec[0][0]) / math.pi * 180
-            printLoc = (round(c2wTVec[0][0], 2),
-                        round(c2wTVec[1][0], 2),
-                        round(c2wTVec[2][0], 2))
+            angZ = math.atan2(rotMat[1][0], rotMat[0][0]) / math.pi * 180
+            printLoc = (round(tvec[0][0], 2),
+                        round(tvec[1][0], 2),
+                        round(tvec[2][0], 2))
             loc = printLoc
             rot = angZ
-            loc = (round((loc[0] / 1000.0 + 3) / 6, 2),
+            loc = (round((-loc[0] / 1000.0 + 3) / 6, 2),
                    round((loc[1] / 1000.0 + 2) / 4, 2),
                    round(loc[2] / 1000.0, 2))
-            if rot < 0:
-                rot += 360
             # }}}
 
             # Draw {{{
