@@ -32,6 +32,7 @@ class Locator():    # {{{
         self.socket.bind(('', 9999))    # }}}
 
         # Servo initiation if needed. {{{
+        self.useServo = useServo
         if useServo:
             pwm = pca.PCA()
             self.servo = servo.Servo(pwm, 4, maxAngle=270)
@@ -144,6 +145,8 @@ class Locator():    # {{{
         self.logger.info('Main thread running.')
         while True:
             last = time.time()
+            for i in range(10):
+                self.cam['dev'].grab()
             read, img = self.cam['dev'].read()
             if read:    # {{{
                 tvec, rvec = self.__locator(img)
@@ -152,37 +155,42 @@ class Locator():    # {{{
                     loc = {'X': round(tvec[0], 2),
                            'Y': round(tvec[1], 2),
                            'Z': round(tvec[2], 2)}
-                    ang = round(rvec) + 90
+                    ang = round(rvec)
+                    self.logger.debug('=====================================')
+                    self.logger.debug(time.ctime())
+                    self.logger.debug('Calculated angle: ' + str(ang))
 
                     if self.useServo:    # {{{
-                        thresh = 30
-                        expectedServoBias = 0
-                        if ang - 0 > thresh:
-                            expectedServoBias = -(ang - thresh)
+                        thresh = 3
+                        error = 0
+                        if ang < 90 and ang - 0 > thresh:
+                            error = -ang
+                            pass
+                        elif ang < 270 and abs(ang - 180) > thresh:
+                            error = 180 - ang
                             pass
                         elif 360 - ang > thresh:
-                            expectedServoBias = (ang + thresh)
-                            pass
-                        elif ang - 180 > thresh:
-                            expectedServoBias = -(ang - thresh)
-                            pass
-                        elif 180 - ang > thresh:
-                            expectedServoBias = (ang + thresh)
-                            pass
-                        # Check servo angle.
-                        if self.servo.angle + expectedServoBias >\
-                                self.servo.maxAngle:
-                            self.servo.setAngle(self.servo.angle - 180)
-                            ang += 180
-                            time.sleep(2)
-                        if self.servo.angle + expectedServoBias < 0:
-                            self.servo.setAngle(self.servo.angle + 180)
-                            ang -= 180
-                            time.sleep(2)
+                            error = 360 - ang
 
+                        self.logger.debug('Fix: ' + str(error))
+                        # Check servo angle.
+                        if self.servo.angle + error >\
+                                self.servo.maxAngle:
+                            # self.servo.setAngle(self.servo.angle - 180)
+                            error = error - 180
+                            ang += 180
+                        if self.servo.angle + error < 0:
+                            # self.servo.setAngle(self.servo.angle + 180)
+                            error = 180 + error
+                            ang -= 180
+
+                        self.logger.debug('Post Fix: '
+                                          + str(error))
                         self.servo.setAngle(self.servo.angle
-                                            + expectedServoBias)
-                        ang += expectedServoBias
+                                            + error)
+                        time.sleep(abs(error) / 60)
+                        self.logger.debug('Servo: ' + str(self.servo.angle))
+                        ang += error
 
                     # }}}
 
@@ -260,8 +268,8 @@ class Locator():    # {{{
 
     def __detectMarker(self, img):    # {{{
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        th, binaryImg = cv2.threshold(gray, 150, 255, cv2.THRESH_OTSU)
-        th, binaryImg = cv2.threshold(gray, 150, 255, cv2.THRESH_TOZERO)
+        # th, binaryImg = cv2.threshold(gray, 150, 255, cv2.THRESH_OTSU)
+        th, binaryImg = cv2.threshold(gray, 250, 255, cv2.THRESH_TOZERO)
         # binaryImg = cv2.adaptiveThreshold(gray, 255,
         #                                   cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
         #                                   cv2.THRESH_BINARY_INV,
@@ -323,7 +331,6 @@ class Locator():    # {{{
         markedImg = image
 
         if len(validContours) == 5:    # Got valid contours {{{
-            self.logger.debug('=============== One Epoch ===================')
             # Calculate the miniman enclosing circle
             centriods = [p['centriod'] for p in validContours]
             centriodsArray = numpy.array(centriods, numpy.float32)
@@ -340,12 +347,8 @@ class Locator():    # {{{
                                                         epsilon,
                                                         closed=True)
                 if epsilon > 200:
-                    self.logger.debug('Approx Failed!')
                     return loc, rot
                 # }}}
-            self.logger.debug('approximatedContours: '
-                              + str(approximatedContours))
-            self.logger.debug('centriodsArray: ' + str(centriodsArray))
             avgDis = list()
             marker = [0, 0]
             for c in centriodsArray:
@@ -385,7 +388,6 @@ class Locator():    # {{{
 
             # Warp affine transform onto points ( marker excepted ) {{{
             pointsComplex = list()
-            self.logger.debug('avgDis: ' + str(avgDis))
             for point in avgDis:
                 p = numpy.array([point[0], point[1], 1], numpy.float32)
                 pAffined = numpy.matmul(affineMat, p)
@@ -395,7 +397,6 @@ class Locator():    # {{{
 
             # Calculate angle in comples corrdinate. {{{
             pointsAngle = list()
-            self.logger.debug('pointsComplex: ' + str(pointsComplex))
             for pc in pointsComplex:
                 c = complex(pc[0][0], pc[0][1])
                 angle = cmath.log(c).imag
@@ -411,7 +412,6 @@ class Locator():    # {{{
                 cor = numpy.array([p[0][1]], dtype=numpy.float32, ndmin=3)
                 corners = numpy.append(corners, cor, axis=1)
             corners = corners[:, 1: len(corners[0]), :]
-            self.logger.debug('Corners: ' + str(corners))
             retval, rvec, tvec = cv2.solvePnP(self.objPoints,
                                               corners,
                                               self.cam['inst'],
@@ -447,6 +447,7 @@ class Locator():    # {{{
 
             if rot < 0:
                 rot += 360
+            rot = 360 - rot
             # }}}
 
             # Draw {{{
@@ -487,7 +488,6 @@ class Locator():    # {{{
                                       round(encCircle[0][1])),
                                      round(encCircle[1]),
                                      (100, 0, 200), 1)
-                self.logger.debug('approx: ' + str(approximatedContours))
                 markedImg = cv2.putText(markedImg, str(loc), (0, 100),
                                         cv2.FONT_HERSHEY_COMPLEX_SMALL, 2,
                                         (150, 50, 150))
