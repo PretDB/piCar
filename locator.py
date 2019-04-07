@@ -197,7 +197,7 @@ class Locator():    # {{{
             # }}}
         pass    # }}}
 
-    def __validateContour(self, contour):    # {{{
+    def __validateContour(self, contour, imgSize=(1280, 720)):    # {{{
         area = cv2.contourArea(contour)
         if area < 500 or area > 5000:
             return False
@@ -216,6 +216,13 @@ class Locator():    # {{{
         if cv2.contourArea(contour) / cv2.contourArea(minRect) <= 0.6:
             return False
 
+        moment = cv2.moments(contour, True)
+        center = (moment['m10'] / moment['m00'],
+                  moment['m01'] / moment['m00'])
+        rate = 0.1
+        if center[0] < imgSize[0] * rate or center[0] > imgSize[0]:
+            return False
+
         return True    # }}}
 
     def __detectMarker(self, img):    # {{{
@@ -231,7 +238,7 @@ class Locator():    # {{{
             if not self.__validateContour(contours[i]):
                 continue
 
-            moment = cv2.moments(contours[i], False)
+            moment = cv2.moments(contours[i], True)
             try:
                 centriod = (moment['m10'] / moment['m00'],
                             moment['m01'] / moment['m00'])
