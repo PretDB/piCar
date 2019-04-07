@@ -151,6 +151,15 @@ class Locator():    # {{{
                     ang = round(rvec) + 180
                     self.heartbeatPackage['Msg'] = {'position': loc,
                                                     'orientation': ang}
+                    thresh = 30
+                    if rvec - 180 > thresh:
+                        pass
+                    elif 180 - rvec > thresh:
+                        pass
+                    elif rvec - 360 > thresh:
+                        pass
+                    elif 360 - rvec > thresh:
+                        pass
                     self.tvec, self.rvec = tvec, rvec
                     dataRaw = json.dumps(self.heartbeatPackage)
                     dataByte = dataRaw.encode('utf-8')
@@ -372,23 +381,25 @@ class Locator():    # {{{
                                                   numpy.float32),
                                       axis=0)
             w2cMatHomo = numpy.matrix(w2cMatHomo)
-            # c2wMat = w2cMatHomo.I
-            # camLocInCamMat = numpy.append(numpy.array([0, 0, 0]), 1)
-            # camLocInWldMat = numpy.matmul(c2wMat, camLocInCamMat)
-            # c2wTVec = c2wMat[:3, 3]
-            # c2wRMat = c2wMat[:3, :3]
-            # c2wRVec = cv2.Rodrigues(c2wRMat)
-            # c2wTVec = camLocInWldMat
+            c2wMat = w2cMatHomo.I
+            camLocInCamMat = numpy.append(numpy.array([0, 0, 0]), 1)
+            camLocInWldMat = numpy.matmul(c2wMat, camLocInCamMat)
+            c2wTVec = c2wMat[:3, 3]
+            c2wRMat = c2wMat[:3, :3]
+            c2wRVec = cv2.Rodrigues(c2wRMat)
+            c2wTVec = camLocInWldMat
 
-            angZ = math.atan2(rotMat[1][0], rotMat[0][0]) / math.pi * 180
-            printLoc = (round(tvec[0][0], 2),
-                        round(tvec[1][0], 2),
-                        round(tvec[2][0], 2))
+            angZ = math.atan2(c2wRMat[1][0], c2wRVec[0][0]) / math.pi * 180
+            printLoc = (round(c2wTVec[0][0], 2),
+                        round(c2wTVec[1][0], 2),
+                        round(c2wTVec[2][0], 2))
             loc = printLoc
             rot = angZ
             loc = (round((loc[0] / 1000.0 + 3) / 6, 2),
                    round((loc[1] / 1000.0 + 2) / 4, 2),
                    round(loc[2] / 1000.0, 2))
+            if rot < 0:
+                rot += 360
             # }}}
 
             # Draw {{{
