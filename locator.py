@@ -63,9 +63,9 @@ class Locator():    # {{{
         hfile.setFormatter(fileFormatter)
         hfile.setLevel(logging.INFO)
         if benchmark:
-            hterm.setLevel(logging.DEBUG)
-        elif release:
             hterm.setLevel(logging.INFO)
+        elif release:
+            hterm.setLevel(logging.WARNING)
         else:
             hterm.setLevel(logging.DEBUG)
         logging.getLogger('').addHandler(hterm)
@@ -155,8 +155,15 @@ class Locator():    # {{{
                     ang = round(rvec)
                     self.logger.debug('Calculated done, angle=%d.' % ang)
 
+                    if self.tvec is not None:
+                        dis = ((tvec[0] - self.tvec[0]) ** 2 +
+                               (tvec[1] - self.tvec[1]) ** 2)
+                        self.logger.debug('Distance: %f', dis)
+                        if dis > 0.1 ** 2:
+                            continue
+
                     if self.useServo:    # {{{
-                        thresh = 5
+                        thresh = 2
                         error = 0
                         if ang < 90 and ang - 0 > thresh:
                             error = -ang
@@ -184,7 +191,7 @@ class Locator():    # {{{
                         self.servo.setAngle(self.servo.angle
                                             + error)
                         beforeGrab = time.time()
-                        while time.time() - beforeGrab < abs(error) * 0.005:
+                        while time.time() - beforeGrab < abs(error) * 0.008:
                             self.cam['dev'].grab()
                         crtGrab = round((time.time() - beforeGrab) * 1000)
                         grabTime.insert(0, crtGrab)
@@ -201,6 +208,7 @@ class Locator():    # {{{
 
                     # }}}
 
+                    ang -= 35
                     self.heartbeatPackage['Msg'] = {'position': loc,
                                                     'orientation': ang}
                     self.tvec, self.rvec = tvec, rvec
@@ -221,7 +229,7 @@ class Locator():    # {{{
                 fps = round(1.0 / (time.time() - last), 1)
 
                 if self.isBenchmark:
-                    self.logger.debug('FPS: %s', fps)
+                    self.logger.info('FPS: %s', fps)
 
                 if not self.isRelease:
                     cv2.imshow('raw', cv2.resize(img,
@@ -345,7 +353,7 @@ class Locator():    # {{{
 
             # Remove marker {{{
             encCircle = cv2.minEnclosingCircle(centriodsArray)
-            epsilon = 10
+            epsilon = 5
             approximatedContours = cv2.approxPolyDP(centriodsArray,
                                                     epsilon,
                                                     closed=True)
@@ -354,7 +362,7 @@ class Locator():    # {{{
                 approximatedContours = cv2.approxPolyDP(centriodsArray,
                                                         epsilon,
                                                         closed=True)
-                if epsilon > 500:
+                if epsilon > 300:
                     return loc, rot
                 # }}}
             avgDis = list()
