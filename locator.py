@@ -171,11 +171,8 @@ class Locator():    # {{{
                         # Check servo angle.
                         if self.servo.angle + error >\
                                 self.servo.maxAngle:
-                            # self.servo.setAngle(self.servo.angle - 180)
                             error = error - 180
-                            ang += 180
                         if self.servo.angle + error < 0:
-                            # self.servo.setAngle(self.servo.angle + 180)
                             error = 180 + error
                             ang -= 180
 
@@ -189,8 +186,6 @@ class Locator():    # {{{
                         beforeGrab = time.time()
                         while time.time() - beforeGrab < abs(error) / 100:
                             self.cam['dev'].grab()
-                        # for i in range(4):
-                        #     self.cam['dev'].grab
                         crtGrab = round((time.time() - beforeGrab) * 1000)
                         grabTime.insert(0, crtGrab)
                         if len(grabTime) > 5:
@@ -212,7 +207,7 @@ class Locator():    # {{{
                     dataRaw = json.dumps(self.heartbeatPackage)
                     dataByte = dataRaw.encode('utf-8')
                     self.socket.sendto(dataByte, self.targetAddress)
-                    self.logger.debug(dataRaw)
+                    self.logger.debug('orientation: %d' % ang)
                     # }}}
                 else:    # {{{
                     if self.isRelease:
@@ -280,9 +275,9 @@ class Locator():    # {{{
 
     def __detectMarker(self, img):    # {{{
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        th, binaryImg = cv2.threshold(gray, 150, 255, cv2.THRESH_OTSU)
-        th, binaryImg = cv2.threshold(gray, th, 255, cv2.THRESH_TOZERO)
-        # th, binaryImg = cv2.threshold(gray, 250, 255, cv2.THRESH_TOZERO)
+        # th, binaryImg = cv2.threshold(gray, 150, 255, cv2.THRESH_OTSU)
+        # th, binaryImg = cv2.threshold(gray, th, 255, cv2.THRESH_TOZERO)
+        th, binaryImg = cv2.threshold(gray, 250, 255, cv2.THRESH_TOZERO)
         # binaryImg = cv2.adaptiveThreshold(gray, 255,
         #                                   cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
         #                                   cv2.THRESH_BINARY_INV,
