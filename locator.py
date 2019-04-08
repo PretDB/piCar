@@ -184,7 +184,7 @@ class Locator():    # {{{
                         self.servo.setAngle(self.servo.angle
                                             + error)
                         beforeGrab = time.time()
-                        while time.time() - beforeGrab < abs(error) / 100:
+                        while time.time() - beforeGrab < abs(error) * 0.005:
                             self.cam['dev'].grab()
                         crtGrab = round((time.time() - beforeGrab) * 1000)
                         grabTime.insert(0, crtGrab)
@@ -435,18 +435,17 @@ class Locator():    # {{{
                                                   numpy.float32),
                                       axis=0)
             w2cMatHomo = numpy.matrix(w2cMatHomo)
-            # c2wMat = w2cMatHomo.I
-            # camLocInCamMat = numpy.append(numpy.array([0, 0, 0]), 1)
-            # camLocInWldMat = numpy.matmul(c2wMat, camLocInCamMat)
-            # c2wTVec = c2wMat[:3, 3]
-            # c2wRMat = c2wMat[:3, :3]
-            # c2wRVec = cv2.Rodrigues(c2wRMat)
-            # c2wTVec = camLocInWldMat
+            c2wMat = w2cMatHomo.I
+            camLocInCamMat = numpy.append(numpy.array([0, 0, 0]), 1)
+            camLocInWldMat = numpy.matmul(c2wMat, camLocInCamMat)
+            c2wTVec = c2wMat[:3, 3]
+            c2wTVec = camLocInWldMat
 
+            c2wTVec = numpy.array(c2wTVec)
             angZ = math.atan2(rotMat[1][0], rotMat[0][0]) / math.pi * 180
-            printLoc = (round(tvec[0][0], 2),
-                        round(tvec[1][0], 2),
-                        round(tvec[2][0], 2))
+            printLoc = (round(c2wTVec[0][0], 2),
+                        round(c2wTVec[0][1], 2),
+                        round(c2wTVec[0][2], 2))
             loc = printLoc
             rot = angZ
             loc = (round((-loc[0] / 1000.0 + 3) / 6, 2),
