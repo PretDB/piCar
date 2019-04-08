@@ -36,10 +36,6 @@ class Locator():    # {{{
         if useServo:
             pwm = pca.PCA()
             self.servo = servo.Servo(pwm, 4, maxAngle=270)
-            self.servo.setAngle(0)
-            time.sleep(2)
-            self.servo.setAngle(self.servo.maxAngle)
-            time.sleep(2)
             self.servo.setAngle(self.servo.maxAngle / 2)
             pass
         # }}}
@@ -136,6 +132,7 @@ class Locator():    # {{{
         # }}}
 
         self.tvec, self.rvec = None, None
+        self.grabTime = list()
         self.logger.info('Locator initiation done, start main thread.')
         if not release:
             cv2.namedWindow('raw')
@@ -143,10 +140,10 @@ class Locator():    # {{{
 
     def run(self):    # {{{
         self.logger.info('Main thread running.')
+        grabTime = list()
         while True:
+            self.logger.debug('=====================================')
             last = time.time()
-            for i in range(10):
-                self.cam['dev'].grab()
             read, img = self.cam['dev'].read()
             if read:    # {{{
                 tvec, rvec = self.__locator(img)
@@ -156,12 +153,10 @@ class Locator():    # {{{
                            'Y': round(tvec[1], 2),
                            'Z': round(tvec[2], 2)}
                     ang = round(rvec)
-                    self.logger.debug('=====================================')
-                    self.logger.debug(time.ctime())
-                    self.logger.debug('Calculated angle: ' + str(ang))
+                    self.logger.debug('Calculated done, angle=%d.' % ang)
 
                     if self.useServo:    # {{{
-                        thresh = 3
+                        thresh = 5
                         error = 0
                         if ang < 90 and ang - 0 > thresh:
                             error = -ang
@@ -169,7 +164,7 @@ class Locator():    # {{{
                         elif ang < 270 and abs(ang - 180) > thresh:
                             error = 180 - ang
                             pass
-                        elif 360 - ang > thresh:
+                        elif ang > 270 and 360 - ang > thresh:
                             error = 360 - ang
 
                         self.logger.debug('Fix: ' + str(error))
@@ -186,11 +181,28 @@ class Locator():    # {{{
 
                         self.logger.debug('Post Fix: '
                                           + str(error))
+                        self.logger.debug('Servo: %d -> %d'
+                                          % (self.servo.angle,
+                                             self.servo.angle + error))
                         self.servo.setAngle(self.servo.angle
                                             + error)
-                        time.sleep(abs(error) / 60)
-                        self.logger.debug('Servo: ' + str(self.servo.angle))
-                        ang += error
+                        beforeGrab = time.time()
+                        while time.time() - beforeGrab < abs(error) / 100:
+                            self.cam['dev'].grab()
+                        # for i in range(4):
+                        #     self.cam['dev'].grab
+                        crtGrab = round((time.time() - beforeGrab) * 1000)
+                        grabTime.insert(0, crtGrab)
+                        if len(grabTime) > 5:
+                            grabTime.pop()
+                        avgGrab = sum(grabTime) / len(grabTime)
+                        maxGrab = max(grabTime)
+                        minGrab = min(grabTime)
+                        self.logger.debug('Current: %3d, Avg: %3d,\
+                                          Max: %3d, Min: %3d'
+                                          % (crtGrab, avgGrab,
+                                             maxGrab, minGrab))
+                        ang += self.servo.angle + error
 
                     # }}}
 
@@ -268,8 +280,9 @@ class Locator():    # {{{
 
     def __detectMarker(self, img):    # {{{
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        # th, binaryImg = cv2.threshold(gray, 150, 255, cv2.THRESH_OTSU)
-        th, binaryImg = cv2.threshold(gray, 250, 255, cv2.THRESH_TOZERO)
+        th, binaryImg = cv2.threshold(gray, 150, 255, cv2.THRESH_OTSU)
+        th, binaryImg = cv2.threshold(gray, th, 255, cv2.THRESH_TOZERO)
+        # th, binaryImg = cv2.threshold(gray, 250, 255, cv2.THRESH_TOZERO)
         # binaryImg = cv2.adaptiveThreshold(gray, 255,
         #                                   cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
         #                                   cv2.THRESH_BINARY_INV,
@@ -302,7 +315,7 @@ class Locator():    # {{{
                                            contours,
                                            i,
                                            color,
-                                           1,
+                                           3,
                                            cv2.LINE_AA)
             except ZeroDivisionError:
                 continue
@@ -312,7 +325,7 @@ class Locator():    # {{{
         else:
             img = cv2.putText(img, str(len(validContours)),
                               (0, round(img.shape[0] / 2)),
-                              cv2.FONT_HERSHEY_DUPLEX,
+                              cv2.FONT_HERSHEY_COMPLEX_SMALL,
                               5,
                               (0, 255, 0))
             return validContours, binaryImg, img
@@ -346,7 +359,7 @@ class Locator():    # {{{
                 approximatedContours = cv2.approxPolyDP(centriodsArray,
                                                         epsilon,
                                                         closed=True)
-                if epsilon > 200:
+                if epsilon > 500:
                     return loc, rot
                 # }}}
             avgDis = list()
