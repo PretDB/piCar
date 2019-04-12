@@ -50,11 +50,11 @@ class tracker():    # {{{
             c = Command(self.com.value)
             if c == Command.Track:
                 self.command = self.getDir()
-                self.car.move(self.command)
+                self.car.carMove(self.command, 0.22)
             else:
                 self.car.move(Command.Stop)
                 break
-            time.sleep(0.1)
+            time.sleep(0.05)
         return
     # }}}
 
@@ -124,15 +124,15 @@ class tracker():    # {{{
         a4_p = self.calc(a4, self.a4_rec[2], self.a4_rec[0])
 
         # Motion calculate
-        if a1_p[0] > 200 and a2_p[0] > 200:
-            self.command = Command.Stop
-        elif abs((a3_p[1][0] + a4_p[1][0]) / 2 - post.shape[1] / 2)\
+        # if a1_p[0] > 200 and a2_p[0] > 200:
+        #     self.command = Command.Stop
+        if abs((a3_p[1][0] + a4_p[1][0]) / 2 - post.shape[1] / 2)\
                 > post.shape[1] * 0.2:
             if (a3_p[1][0] + a4_p[1][0]) / 2 < post.shape[1] / 2:
                 self.command = Command.LeftShift
             else:
                 self.command = Command.RightShift
-        elif abs(a3_p[1][0] - a4_p[1][0]) > 4:
+        elif abs(a3_p[1][0] - a4_p[1][0]) > 10:
             if a3_p[1][0] < a4_p[1][0]:
                 self.command = Command.LeftRotate
             else:

@@ -9,7 +9,7 @@ class SDFunc():    # {{{
             import wiringpi
             self.wiringpi = wiringpi
             self.wiringpi.wiringPiSetup()
-            self.wiringpi.pinMode(29, wiringpi.INPUT)
+            self.wiringpi.pinMode(25, wiringpi.INPUT)
         else:
             self.wiringpi = None
 
@@ -25,13 +25,14 @@ class SDFunc():    # {{{
         def trig():
             if not self.wiringpi == None:
                 # Disable interrupt
-                self.wiringpi.wiringPiISR(29, self.wiringpi.INT_EDGE_FALLING,
+                self.wiringpi.wiringPiISR(25, self.wiringpi.INT_EDGE_FALLING,
                                           untrig)
                 self.car.move(Command.RightRotate)
                 time.sleep(3)
                 self.car.move(Command.Stop)
                 # Enable interrupt
-                self.wiringpi.wiringPiISR(29, self.wiringpi.INT_EDGE_FALLING,
+                time.sleep(0.5)
+                self.wiringpi.wiringPiISR(25, self.wiringpi.INT_EDGE_FALLING,
                                           trig)
             return
 
@@ -43,7 +44,7 @@ class SDFunc():    # {{{
             c = Command(self.com.value)
             if c == Command.SoundDetect:
                 if (not self.hooked) and (not self.wiringpi == None):
-                    self.wiringpi.wiringPiISR(29,
+                    self.wiringpi.wiringPiISR(25,
                                               self.wiringpi.INT_EDGE_FALLING,
                                               trig)
                     self.hooked = True
@@ -51,7 +52,7 @@ class SDFunc():    # {{{
                     pass
             else:
                 if not self.wiringpi == None:
-                    self.wiringpi.wiringPiISR(29,
+                    self.wiringpi.wiringPiISR(25,
                                               self.wiringpi.INT_EDGE_FALLING,
                                               untrig)
                 self.hooked = False
