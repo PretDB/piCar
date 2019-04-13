@@ -34,10 +34,14 @@ class IRFunc():    # {{{
 
                 if hlstate == self.pins.LOW and hrstate == self.pins.LOW:
                     self.car.move(Command.RightRotate)
-                elif hlstate == self.pins.LOW or llstate == self.pins.LOW:
+                elif hlstate == self.pins.LOW:
                     self.car.move(Command.RightRotate)
-                elif hrstate == self.pins.LOW or rrstate == self.pins.LOW:
+                elif llstate == self.pins.LOW:
+                    self.car.move(Command.RightShift)
+                elif hrstate == self.pins.LOW:
                     self.car.move(Command.LeftRotate)
+                elif rrstate == self.pins.LOW:
+                    self.car.move(Command.LeftShift)
                 else:
                     self.car.move(Command.Forward)
             else:
