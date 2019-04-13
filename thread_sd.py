@@ -23,7 +23,7 @@ class SDFunc():    # {{{
     # Run, main thread loop {{{
     def run(self):
         def trig():
-            if not self.wiringpi == None:
+            if self.wiringpi is not None:
                 # Disable interrupt
                 self.wiringpi.wiringPiISR(25, self.wiringpi.INT_EDGE_FALLING,
                                           untrig)
@@ -43,7 +43,7 @@ class SDFunc():    # {{{
             time.sleep(0.3)
             c = Command(self.com.value)
             if c == Command.SoundDetect:
-                if (not self.hooked) and (not self.wiringpi == None):
+                if (not self.hooked) and (self.wiringpi is not None):
                     self.wiringpi.wiringPiISR(25,
                                               self.wiringpi.INT_EDGE_FALLING,
                                               trig)
@@ -51,7 +51,7 @@ class SDFunc():    # {{{
                 else:
                     pass
             else:
-                if not self.wiringpi == None:
+                if self.wiringpi is not None:
                     self.wiringpi.wiringPiISR(25,
                                               self.wiringpi.INT_EDGE_FALLING,
                                               untrig)

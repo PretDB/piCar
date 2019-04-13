@@ -42,8 +42,9 @@ class SonicFunc():    # {{{
         while True:
             c = Command(self.com.value)
             if c == Command.Sonic:
+                ang = self.servo.angle
                 self.servo.setAngle(90)
-                time.sleep(1)
+                time.sleep(abs(ang - 90) * 0.008)
                 frontDis = self.readCM()
                 if frontDis < 10.0 or frontDis > 40.0:
                     self.car.move(Command.Forward)
@@ -54,12 +55,14 @@ class SonicFunc():    # {{{
                     rightAve = 0.0
 
                     for leftTick in range(3):
+                        ang = self.servo.angle
                         self.servo.setAngle(leftTick * 30)
-                        time.sleep(1)
+                        time.sleep(abs(leftTick * 30 - ang) * 0.008)
                         leftAve += self.readCM()
                     for rightTick in range(3, 6):
+                        ang = self.servo.angle
                         self.servo.setAngle(rightTick * 30)
-                        time.sleep(1)
+                        time.sleep(abs(rightTick * 30 - ang) * 0.008)
                         rightAve += self.readCM()
 
                     leftAve /= 3
