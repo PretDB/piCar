@@ -230,6 +230,33 @@ class Locator():    # {{{
                     # }}}
                 else:    # {{{
                     if self.useServo:
+                        compassAngle = self.compass.readAngle
+                        compassError = compassAngle - self.lastCompassAngle
+                        self.logger.debug('Compass Fix: %f' % compassError)
+                        if self.servo.angle + compassError\
+                                > self.servo.maxAngle:
+                            compassError -= 180
+                        elif self.servo.angle + compassError < 0:
+                            compassError += 180
+                        self.logger.debug('Compass post fix: %f.' % compassError)
+                        self.logger.debug('Compass servo fix: %f -> %f'
+                                        % (self.servo.angle,
+                                            self.servo.angle + compassError))
+                        self.servo.setAngle(self.servo.angle + compassError)
+                        beforeGrab = time.time()
+                        while time.time() - beforeGrab < abs(error) * 0.008:
+                            self.cam['dev'].grab()
+                        crtGrab = round((time.time() - beforeGrab) * 1000)
+                        grabTime.insert(0, crtGrab)
+                        if len(grabTime) > 5:
+                            grabTime.pop()
+                        avgGrab = sum(grabTime) / len(grabTime)
+                        maxGrab = max(grabTime)
+                        minGrab = min(grabTime)
+                        self.logger.debug('Current: %3d, Avg: %3d,\
+                                          Max: %3d, Min: %3d'
+                                          % (crtGrab, avgGrab,
+                                             maxGrab, minGrab))
                         pass
 
                     if self.isRelease:
@@ -256,36 +283,6 @@ class Locator():    # {{{
                         break
             # }}}
             else:    # {{{
-                if self.useServo:
-                    compassAngle = self.compass.readAngle
-                    compassError = compassAngle - self.lastCompassAngle
-                    self.logger.debug('Compass Fix: %f' % compassError)
-                    if self.servo.angle + compassError\
-                            > self.servo.maxAngle:
-                        compassError -= 180
-                    elif self.servo.angle + compassError < 0:
-                        compassError += 180
-                    self.logger.debug('Compass post fix: %f.' % compassError)
-                    self.logger.debug('Compass servo fix: %f -> %f'
-                                      % (self.servo.angle,
-                                         self.servo.angle + compassError))
-                    self.servo.setAngle(self.servo.angle + compassError)
-                    beforeGrab = time.time()
-                    while time.time() - beforeGrab < abs(error) * 0.008:
-                        self.cam['dev'].grab()
-                    crtGrab = round((time.time() - beforeGrab) * 1000)
-                    grabTime.insert(0, crtGrab)
-                    if len(grabTime) > 5:
-                        grabTime.pop()
-                    avgGrab = sum(grabTime) / len(grabTime)
-                    maxGrab = max(grabTime)
-                    minGrab = min(grabTime)
-                    self.logger.debug('Current: %3d, Avg: %3d,\
-                                       Max: %3d, Min: %3d'
-                                      % (crtGrab, avgGrab,
-                                         maxGrab, minGrab))
-                    pass
-
                 if self.isRelease:
                     self.logger.error('locate Failed, can not get image')
                 continue
