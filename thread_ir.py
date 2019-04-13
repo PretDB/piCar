@@ -26,7 +26,7 @@ class IRFunc():    # {{{
         while True:
             time.sleep(0.1)
             c = Command(self.com.value)
-            if c == Command.IR:
+            if c == Command.IR or c == Command.Sonic:
                 llstate = self.pins.digitalRead(self.llchannel)
                 hlstate = self.pins.digitalRead(self.hlchannel)
                 hrstate = self.pins.digitalRead(self.hrchannel)
