@@ -25,7 +25,8 @@ class Locator():    # {{{
         testS = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         testS.connect(('8.8.8.8', 80))
         self.localIP = testS.getsockname()[0]
-        self.deviceName = socket.gethostname()
+        self.deviceName = int(socket.gethostname()) - 10
+        # self.deviceName = socket.gethostname()
         testS.close()
         self.socket.bind(('', 9999))    # }}}
 
@@ -153,7 +154,8 @@ class Locator():    # {{{
         grabTime = list()
         while True:
             self.logger.debug('=====================================')
-            self.lastCompassAngle = self.compass.readAngle
+            if self.useServo:
+                self.lastCompassAngle = self.compass.readAngle()
             last = time.time()
             read, img = self.cam['dev'].read()
             if read:    # {{{
@@ -166,12 +168,17 @@ class Locator():    # {{{
                     ang = round(rvec)
                     self.logger.debug('Calculated done, angle=%d.' % ang)
 
-                    if self.tvec is not None:
-                        dis = ((tvec[0] - self.tvec[0]) ** 2 +
-                               (tvec[1] - self.tvec[1]) ** 2)
-                        self.logger.debug('Distance: %f', dis)
-                        if dis > 0.2 ** 2:
-                            continue
+                    fps = round(1.0 / (time.time() - last), 1)
+
+                    if self.isBenchmark:
+                        self.logger.info('FPS: %s', fps)
+
+                    # if self.tvec is not None:
+                    #     dis = ((tvec[0] - self.tvec[0]) ** 2 +
+                    #            (tvec[1] - self.tvec[1]) ** 2)
+                    #     self.logger.debug('Distance: %f', dis)
+                    #     if dis > 0.2 ** 2:
+                    #         continue
 
                     if self.useServo:    # {{{
                         thresh = 2
@@ -227,10 +234,11 @@ class Locator():    # {{{
                     dataByte = dataRaw.encode('utf-8')
                     self.socket.sendto(dataByte, self.targetAddress)
                     self.logger.debug('orientation: %d' % ang)
+                    self.logger.debug('Package: %s' % dataRaw)
                     # }}}
                 else:    # {{{
                     if self.useServo:
-                        compassAngle = self.compass.readAngle
+                        compassAngle = self.compass.readAngle()
                         compassError = compassAngle - self.lastCompassAngle
                         self.logger.debug('Compass Fix: %f' % compassError)
                         if self.servo.angle + compassError\
@@ -238,13 +246,15 @@ class Locator():    # {{{
                             compassError -= 180
                         elif self.servo.angle + compassError < 0:
                             compassError += 180
-                        self.logger.debug('Compass post fix: %f.' % compassError)
+                        self.logger.debug('Compass post fix: %f.'
+                                          % compassError)
                         self.logger.debug('Compass servo fix: %f -> %f'
-                                        % (self.servo.angle,
-                                            self.servo.angle + compassError))
+                                          % (self.servo.angle,
+                                             self.servo.angle + compassError))
                         self.servo.setAngle(self.servo.angle + compassError)
                         beforeGrab = time.time()
-                        while time.time() - beforeGrab < abs(error) * 0.008:
+                        while time.time() - beforeGrab\
+                                < abs(compassError) * 0.008:
                             self.cam['dev'].grab()
                         crtGrab = round((time.time() - beforeGrab) * 1000)
                         grabTime.insert(0, crtGrab)
@@ -267,11 +277,6 @@ class Locator():    # {{{
                                             % str(self.rvec))
                 # }}}
 
-                fps = round(1.0 / (time.time() - last), 1)
-
-                if self.isBenchmark:
-                    self.logger.info('FPS: %s', fps)
-
                 if not self.isRelease:
                     cv2.imshow('raw', cv2.resize(img,
                                                  (round(img.shape[1] / 2),
@@ -289,24 +294,61 @@ class Locator():    # {{{
             # }}}
         pass    # }}}
 
+    def __distanceToLine(self, point, lp1, lp2):
+        a = lp2[1] - lp1[1]
+        b = lp1[0] - lp2[0]
+        c = lp2[0] * lp1[1]\
+            - lp1[0] * lp2[1]
+        dis = abs(a * point[0] + b * point[1] + c)\
+            / ((a * a + b * b) ** 0.5)
+        return dis
+
+    def __distanceToPoint(self, point, target):
+        return ((point[0] - target[0]) ** 2
+                + (point[1] - target[1]) ** 2) ** 0.5
+
+    def __findLabel(self, contour):
+        m = list()
+        for i in range(len(contour)):
+            for j in range(i + 1, len(contour)):
+                for k in range(len(contour)):
+                    if not k == i and not k == j:
+                        d = self.__distanceToLine(contour[k],
+                                                  contour[i],
+                                                  contour[j])
+                        dp1 = self.__distanceToPoint(contour[k],
+                                                     contour[i])
+                        dp2 = self.__distanceToPoint(contour[k],
+                                                     contour[j])
+                        m.append([d, dp1, dp2,
+                                  k, i, j])
+                        pass
+                    else:
+                        continue
+        m.sort(key=(lambda x: x[0]))
+        m = m[:3]
+        m.sort(key=(lambda x: x[1] + x[2]))
+        return m[0][3]
+        pass
+
     def __validateContour(self, contour, img, imgSize=(1280, 720)):    # {{{
         area = cv2.contourArea(contour)
-        if area < 600 or area > 5000:
+        if area < 700 or area > 4000:
             return False
         # if not cv2.isContourConvex(contour):
         #     return False
 
         # Filter by number of contours approxed whoes precision is defiened
         # by its length.
-        # rate = 0
-        # precision = rate * cv2.arcLength(contour, closed=True)
-        # approxContour = cv2.approxPolyDP(contour, precision, closed=True)
-        # while not len(approxContour) == 4:
-        #     if rate > 0.1:
-        #         return False
-        #     rate += 0.01
-        #     precision = rate * cv2.arcLength(contour, closed=True)
-        #     approxContour = cv2.approxPolyDP(contour, precision, closed=True)
+        rate = 0
+        precision = rate * cv2.arcLength(contour, closed=True)
+        approxContour = cv2.approxPolyDP(contour, precision, closed=True)
+        while not len(approxContour) == 4:
+            if rate > 0.1:
+                return False
+            rate += 0.01
+            precision = rate * cv2.arcLength(contour, closed=True)
+            approxContour = cv2.approxPolyDP(contour, precision, closed=True)
         # self.logger.debug('Approx Contour: %s' % str(approxContour))
         # self.logger.debug('Approx Contour: %s' % str(approxContour[0: 2]))
         # self.logger.debug('Approx Contour: %s' % str(approxContour[0: 4: 3]))
@@ -394,21 +436,13 @@ class Locator():    # {{{
     def __locator(self, image):    # {{{
         loc = None
         rot = None
-        # und = cv2.undistort(image,
-        #                     self.cam['inst'],
-        #                     self.cam['dist'],
-        #                     None,
-        #                     self.cam['optm'])
-        # und = cv2.resize(und, (round(und.shape[1] / 3),
-        #                        round(und.shape[0] / 3)))
-        # cv2.imshow('undistort', und)
         if self.isRelease:
             validContours = self.__detectMarker(image)
         else:
             validContours, binaryImg, image = self.__detectMarker(image)
 
         calcImg = numpy.zeros([image.shape[0], image.shape[1], 3],
-                              numpy.uint8)
+                              numpy.float32)
         markedImg = image
 
         if len(validContours) == 5:    # Got valid contours {{{
@@ -418,25 +452,35 @@ class Locator():    # {{{
 
             # Remove marker {{{
             encCircle = cv2.minEnclosingCircle(centriodsArray)
-            epsilon = 5
-            approximatedContours = cv2.approxPolyDP(centriodsArray,
-                                                    epsilon,
-                                                    closed=True)
-            while not len(approximatedContours) == 4:    # {{{
-                epsilon = epsilon + 5
-                approximatedContours = cv2.approxPolyDP(centriodsArray,
-                                                        epsilon,
-                                                        closed=True)
-                if epsilon > 300:
-                    return loc, rot
-                # }}}
+
+            # epsilon = 0.01
+            # approximatedContours = cv2.approxPolyDP(centriodsArray,
+            #                                         epsilon,
+            #                                         closed=True)
+            # while not len(approximatedContours) == 4:    # {{{
+            #     epsilon = epsilon + 0.01
+            #     approximatedContours = cv2.approxPolyDP(centriodsArray,
+            #                                             epsilon,
+            #                                             closed=True)
+            #     if epsilon > 100:
+            #         self.logger.debug('Approx failed.')
+            #         return loc, rot
+            #     # }}}
+            # self.logger.debug('Epsilon: %f', epsilon)
             avgDis = list()
             marker = [0, 0]
-            for c in centriodsArray:
-                if c in approximatedContours[:, 0]:
-                    avgDis.append(c)
-                else:
-                    marker = c
+            # for c in centriodsArray:
+            #     if c in approximatedContours[:, 0]:
+            #         avgDis.append(c)
+            #     else:
+            #         marker = c
+            jm = self.__findLabel(centriodsArray)
+            self.logger.debug('marker, %s' % str(marker))
+            self.logger.debug('jm, %s' % str(centriodsArray[jm]))
+            self.logger.debug('avgDis: %s' % str(avgDis))
+            marker = centriods[jm]
+            avgDis = centriods
+            avgDis.remove(avgDis[jm])
             # }}}
 
             # Get X and Y axis {{{
@@ -532,6 +576,13 @@ class Locator():    # {{{
 
             # Draw {{{
             if not self.isRelease:
+                # c = [numpy.array([approximatedContours])]
+                # self.logger.debug('SContour: %s.' % str(c))
+                # calcImg = cv2.drawContours(calcImg,
+                #                            c,
+                #                            0,
+                #                            (100, 100, 200),
+                #                            2)
                 calcImg = cv2.line(calcImg, o, xArrow, (100, 100, 100), 2)
                 calcImg = cv2.putText(calcImg,
                                       'x',
