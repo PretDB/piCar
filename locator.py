@@ -11,8 +11,6 @@ import math
 import random
 import socket
 import json
-import pca
-import servo
 
 
 class Locator():    # {{{
@@ -27,7 +25,7 @@ class Locator():    # {{{
         testS = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         testS.connect(('8.8.8.8', 80))
         self.localIP = testS.getsockname()[0]
-        self.deviceName = int(socket.gethostname()) - 10
+        self.deviceName = socket.gethostname()
         testS.close()
         self.socket.bind(('', 9999))    # }}}
 
@@ -38,6 +36,12 @@ class Locator():    # {{{
             self.servo = servo.Servo(pwm, 4, maxAngle=270)
             self.servo.setAngle(self.servo.maxAngle / 2)
             pass
+        # }}}
+
+        # Compass initiation if needed. {{{
+        if useServo:
+            self.compass = qmc.QMC(True)
+            self.lastCompassAngle = self.compass.readAngle()
         # }}}
 
         # Initiate hearbeat package {{{
@@ -108,6 +112,12 @@ class Locator():    # {{{
                                             0.0020,
                                             -0.0069])
             pass
+        optm, roi = cv2.getOptimalNewCameraMatrix(self.cam['inst'],
+                                                  self.cam['dist'],
+                                                  (1280, 720),
+                                                  0,
+                                                  (1280, 720))
+        self.cam['optm'], self.cam['roi'] = optm, roi
         self.logger.info('Len %s loaded.' % (lens))
         self.cam['dev'] = cv2.VideoCapture('/dev/locator')    # }}}
 
@@ -143,6 +153,7 @@ class Locator():    # {{{
         grabTime = list()
         while True:
             self.logger.debug('=====================================')
+            self.lastCompassAngle = self.compass.readAngle
             last = time.time()
             read, img = self.cam['dev'].read()
             if read:    # {{{
@@ -159,7 +170,7 @@ class Locator():    # {{{
                         dis = ((tvec[0] - self.tvec[0]) ** 2 +
                                (tvec[1] - self.tvec[1]) ** 2)
                         self.logger.debug('Distance: %f', dis)
-                        if dis > 0.1 ** 2:
+                        if dis > 0.2 ** 2:
                             continue
 
                     if self.useServo:    # {{{
@@ -179,7 +190,7 @@ class Locator():    # {{{
                         if self.servo.angle + error >\
                                 self.servo.maxAngle:
                             error = error - 180
-                        if self.servo.angle + error < 0:
+                        elif self.servo.angle + error < 0:
                             error = 180 + error
                             ang -= 180
 
@@ -218,6 +229,9 @@ class Locator():    # {{{
                     self.logger.debug('orientation: %d' % ang)
                     # }}}
                 else:    # {{{
+                    if self.useServo:
+                        pass
+
                     if self.isRelease:
                         self.logger.warning('Locate failed, no valid loc got, '
                                             + 'last loc %s'
@@ -242,6 +256,36 @@ class Locator():    # {{{
                         break
             # }}}
             else:    # {{{
+                if self.useServo:
+                    compassAngle = self.compass.readAngle
+                    compassError = compassAngle - self.lastCompassAngle
+                    self.logger.debug('Compass Fix: %f' % compassError)
+                    if self.servo.angle + compassError\
+                            > self.servo.maxAngle:
+                        compassError -= 180
+                    elif self.servo.angle + compassError < 0:
+                        compassError += 180
+                    self.logger.debug('Compass post fix: %f.' % compassError)
+                    self.logger.debug('Compass servo fix: %f -> %f'
+                                      % (self.servo.angle,
+                                         self.servo.angle + compassError))
+                    self.servo.setAngle(self.servo.angle + compassError)
+                    beforeGrab = time.time()
+                    while time.time() - beforeGrab < abs(error) * 0.008:
+                        self.cam['dev'].grab()
+                    crtGrab = round((time.time() - beforeGrab) * 1000)
+                    grabTime.insert(0, crtGrab)
+                    if len(grabTime) > 5:
+                        grabTime.pop()
+                    avgGrab = sum(grabTime) / len(grabTime)
+                    maxGrab = max(grabTime)
+                    minGrab = min(grabTime)
+                    self.logger.debug('Current: %3d, Avg: %3d,\
+                                       Max: %3d, Min: %3d'
+                                      % (crtGrab, avgGrab,
+                                         maxGrab, minGrab))
+                    pass
+
                 if self.isRelease:
                     self.logger.error('locate Failed, can not get image')
                 continue
@@ -250,16 +294,32 @@ class Locator():    # {{{
 
     def __validateContour(self, contour, img, imgSize=(1280, 720)):    # {{{
         area = cv2.contourArea(contour)
-        if area < 500 or area > 5000:
+        if area < 600 or area > 5000:
             return False
         # if not cv2.isContourConvex(contour):
         #     return False
 
         # Filter by number of contours approxed whoes precision is defiened
         # by its length.
-        # precision = 0.1 * cv2.arcLength(contour, closed=True)
+        # rate = 0
+        # precision = rate * cv2.arcLength(contour, closed=True)
         # approxContour = cv2.approxPolyDP(contour, precision, closed=True)
-        # if not len(approxContour) == 4:
+        # while not len(approxContour) == 4:
+        #     if rate > 0.1:
+        #         return False
+        #     rate += 0.01
+        #     precision = rate * cv2.arcLength(contour, closed=True)
+        #     approxContour = cv2.approxPolyDP(contour, precision, closed=True)
+        # self.logger.debug('Approx Contour: %s' % str(approxContour))
+        # self.logger.debug('Approx Contour: %s' % str(approxContour[0: 2]))
+        # self.logger.debug('Approx Contour: %s' % str(approxContour[0: 4: 3]))
+        # e0 = cv2.arcLength(approxContour[0: 2], closed=False)
+        # e1 = cv2.arcLength(approxContour[1: 3], closed=False)
+        # e2 = cv2.arcLength(approxContour[2: 4], closed=False)
+        # e3 = cv2.arcLength(numpy.array([approxContour[0],
+        #                                 approxContour[3]]), closed=False)
+        # if abs(e0 - e2) / max(e0, e2) > 0.4\
+        #         or abs(e1 - e3) / max(e1, e3) > 0.4:
         #     return False
 
         # Filter by similarity between contour and its minimum binding
@@ -284,16 +344,16 @@ class Locator():    # {{{
     def __detectMarker(self, img):    # {{{
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         # th, binaryImg = cv2.threshold(gray, 150, 255, cv2.THRESH_OTSU)
-        # th, binaryImg = cv2.threshold(gray, th, 255, cv2.THRESH_TOZERO)
+        # th, binaryImg = cv2.threshold(gray, (th) , 255, cv2.THRESH_TOZERO)
         th, binaryImg = cv2.threshold(gray, 250, 255, cv2.THRESH_TOZERO)
         # binaryImg = cv2.adaptiveThreshold(gray, 255,
-        #                                   cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-        #                                   cv2.THRESH_BINARY_INV,
-        #                                   41,
+        #                                   cv2.ADAPTIVE_THRESH_MEAN_C,
+        #                                   cv2.THRESH_BINARY,
+        #                                   81,
         #                                   -20)
         binaryImg = cv2.morphologyEx(binaryImg, cv2.MORPH_CLOSE, (21, 21))
         c, contours, hierarchy = cv2.findContours(binaryImg,
-                                                  cv2.RETR_TREE,
+                                                  cv2.RETR_LIST,
                                                   cv2.CHAIN_APPROX_SIMPLE)
 
         validContours = list()
@@ -337,6 +397,14 @@ class Locator():    # {{{
     def __locator(self, image):    # {{{
         loc = None
         rot = None
+        # und = cv2.undistort(image,
+        #                     self.cam['inst'],
+        #                     self.cam['dist'],
+        #                     None,
+        #                     self.cam['optm'])
+        # und = cv2.resize(und, (round(und.shape[1] / 3),
+        #                        round(und.shape[0] / 3)))
+        # cv2.imshow('undistort', und)
         if self.isRelease:
             validContours = self.__detectMarker(image)
         else:
@@ -431,8 +499,8 @@ class Locator():    # {{{
             retval, rvec, tvec = cv2.solvePnP(self.objPoints,
                                               corners,
                                               self.cam['inst'],
-                                              self.cam['dist'],
-                                              flags=cv2.SOLVEPNP_ITERATIVE)
+                                              self.cam['dist'])
+            #                                   flags=cv2.SOLVEPNP_ITERATIVE)
             # }}}
 
             # Calculate camera pose. {{{
@@ -566,6 +634,10 @@ for key, val in opts:
     if key == '-s':
         useServo = True
 
+if useServo:
+    import pca
+    import servo
+    import qmc
 lctr = Locator(benchmark=benchmark,
                lens=lens,
                release=release,
