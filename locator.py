@@ -17,7 +17,8 @@ class Locator():    # {{{
     def __init__(self, benchmark=False,
                  lens=0,
                  release=True,
-                 useServo=False):    # {{{
+                 useServo=False,
+                 showImg=False):    # {{{
         # Initiate network {{{
         self.targetAddress = ('<broadcast>', 6868)
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -67,21 +68,18 @@ class Locator():    # {{{
                                     backupCount=10)
         hfile.setFormatter(fileFormatter)
         hfile.setLevel(logging.INFO)
-        if benchmark:
-            hterm.setLevel(logging.INFO)
-        elif release:
+        if release:
             hterm.setLevel(logging.WARNING)
         else:
             hterm.setLevel(logging.DEBUG)
         logging.getLogger('').addHandler(hterm)
         self.logger.addHandler(hterm)
-        self.logger.addHandler(hfile)    # }}}
+        # self.logger.addHandler(hfile)    # }}}
 
         # Log basic configurations. {{{
         self.logger.info('Locator initiation started.')
 
         self.isBenchmark = benchmark
-        self.isRelease = release
         self.logger.info('Benchmark: ' + str(benchmark))
         self.logger.info('Release:' + str(release))
         self.logger.info('Use servo: ' + str(useServo))    # }}}
@@ -143,35 +141,33 @@ class Locator():    # {{{
         # }}}
 
         self.tvec, self.rvec = None, None
-        self.grabTime = list()
         self.logger.info('Locator initiation done, start main thread.')
-        if not release:
+        self.showImg = showImg
+        if showImg:
             cv2.namedWindow('raw')
         pass    # }}}
 
     def run(self):    # {{{
         self.logger.info('Main thread running.')
-        grabTime = list()
         while True:
             self.logger.debug('=====================================')
+            last = time.time()
             if self.useServo:
                 self.lastCompassAngle = self.compass.readAngle()
-            last = time.time()
+            # read, img = self.cam['dev'].read()
             read, img = self.cam['dev'].read()
+            while time.time() - last < 0.25:
+                read, img = self.cam['dev'].read()
             if read:    # {{{
-                tvec, rvec = self.__locator(img)
+                tvec, rvec, code = self.__locator(img)
 
                 if tvec is not None or rvec is not None:    # {{{
                     loc = {'X': round(tvec[0], 2),
                            'Y': round(tvec[1], 2),
                            'Z': round(tvec[2], 2)}
                     ang = round(rvec)
-                    self.logger.debug('Calculated done, angle=%d.' % ang)
-
-                    fps = round(1.0 / (time.time() - last), 1)
-
-                    if self.isBenchmark:
-                        self.logger.info('FPS: %s', fps)
+                    self.logger.debug('Calculated done, loc=%s, angle=%d.'
+                                      % (str(loc), ang))
 
                     # if self.tvec is not None:
                     #     dis = ((tvec[0] - self.tvec[0]) ** 2 +
@@ -208,35 +204,28 @@ class Locator():    # {{{
                                              self.servo.angle + error))
                         self.servo.setAngle(self.servo.angle
                                             + error)
-                        beforeGrab = time.time()
-                        while time.time() - beforeGrab < abs(error) * 0.008:
-                            self.cam['dev'].grab()
-                        crtGrab = round((time.time() - beforeGrab) * 1000)
-                        grabTime.insert(0, crtGrab)
-                        if len(grabTime) > 5:
-                            grabTime.pop()
-                        avgGrab = sum(grabTime) / len(grabTime)
-                        maxGrab = max(grabTime)
-                        minGrab = min(grabTime)
-                        self.logger.debug('Current: %3d, Avg: %3d,\
-                                          Max: %3d, Min: %3d'
-                                          % (crtGrab, avgGrab,
-                                             maxGrab, minGrab))
+                        # time.sleep(error * 0.008)
                         ang += self.servo.angle + error
 
                     # }}}
 
                     ang -= 35
+                    self.logger.debug('orientation: %d' % ang)
                     self.heartbeatPackage['Msg'] = {'position': loc,
                                                     'orientation': ang}
                     self.tvec, self.rvec = tvec, rvec
                     dataRaw = json.dumps(self.heartbeatPackage)
                     dataByte = dataRaw.encode('utf-8')
                     self.socket.sendto(dataByte, self.targetAddress)
-                    self.logger.debug('orientation: %d' % ang)
-                    self.logger.debug('Package: %s' % dataRaw)
+                    # self.logger.debug('Package: %s' % dataRaw)
+                    self.logger.debug('Locate: %s' % loc)
                     # }}}
                 else:    # {{{
+                    self.logger.warning('Locate failed, no valid loc got, '
+                                        + 'last loc %s'
+                                        % str(self.tvec) +
+                                        ', last orien: %s'
+                                        % str(self.rvec))
                     if self.useServo:
                         compassAngle = self.compass.readAngle()
                         compassError = compassAngle - self.lastCompassAngle
@@ -252,35 +241,15 @@ class Locator():    # {{{
                                           % (self.servo.angle,
                                              self.servo.angle + compassError))
                         self.servo.setAngle(self.servo.angle + compassError)
-                        beforeGrab = time.time()
-                        while time.time() - beforeGrab\
-                                < abs(compassError) * 0.008:
-                            self.cam['dev'].grab()
-                        crtGrab = round((time.time() - beforeGrab) * 1000)
-                        grabTime.insert(0, crtGrab)
-                        if len(grabTime) > 5:
-                            grabTime.pop()
-                        avgGrab = sum(grabTime) / len(grabTime)
-                        maxGrab = max(grabTime)
-                        minGrab = min(grabTime)
-                        self.logger.debug('Current: %3d, Avg: %3d,\
-                                          Max: %3d, Min: %3d'
-                                          % (crtGrab, avgGrab,
-                                             maxGrab, minGrab))
                         pass
-
-                    if self.isRelease:
-                        self.logger.warning('Locate failed, no valid loc got, '
-                                            + 'last loc %s'
-                                            % str(self.tvec) +
-                                            ', last orien: %s'
-                                            % str(self.rvec))
                 # }}}
 
-                if not self.isRelease:
+                if self.showImg:
                     cv2.imshow('raw', cv2.resize(img,
                                                  (round(img.shape[1] / 2),
                                                   round(img.shape[0] / 2))))
+                    if code == 1:
+                        cv2.waitKey(0)
                     key = cv2.waitKey(30)
                     if key == ord(' '):
                         key = cv2.waitKey(0)
@@ -288,10 +257,14 @@ class Locator():    # {{{
                         break
             # }}}
             else:    # {{{
-                if self.isRelease:
-                    self.logger.error('locate Failed, can not get image')
+                self.logger.error('locate Failed, can not get image')
                 continue
             # }}}
+
+            fps = round(1.0 / (time.time() - last), 1)
+
+            if self.isBenchmark:
+                self.logger.info('FPS: %s', fps)
         pass    # }}}
 
     def __distanceToLine(self, point, lp1, lp2):
@@ -333,7 +306,14 @@ class Locator():    # {{{
 
     def __validateContour(self, contour, img, imgSize=(1280, 720)):    # {{{
         area = cv2.contourArea(contour)
-        if area < 700 or area > 4000:
+        if area < 200 or area > 5000:
+            if self.showImg:
+                img = cv2.putText(img,
+                                  'area: %f' % area,
+                                  (contour[0][0][0], contour[0][0][1]),
+                                  cv2.FONT_HERSHEY_COMPLEX_SMALL,
+                                  1,
+                                  255)
             return False
         # if not cv2.isContourConvex(contour):
         #     return False
@@ -341,14 +321,15 @@ class Locator():    # {{{
         # Filter by number of contours approxed whoes precision is defiened
         # by its length.
         rate = 0
-        precision = rate * cv2.arcLength(contour, closed=True)
-        approxContour = cv2.approxPolyDP(contour, precision, closed=True)
-        while not len(approxContour) == 4:
-            if rate > 0.1:
-                return False
-            rate += 0.01
-            precision = rate * cv2.arcLength(contour, closed=True)
-            approxContour = cv2.approxPolyDP(contour, precision, closed=True)
+        length = cv2.arcLength(contour, closed=True)
+        # precision = rate * length
+        # approxContour = cv2.approxPolyDP(contour, precision, closed=True)
+        # while not len(approxContour) == 4:
+        #     if rate > 0.1:
+        #         return False
+        #     rate += 0.01
+        #     precision = rate * cv2.arcLength(contour, closed=True)
+        #     approxContour = cv2.approxPolyDP(contour, precision, closed=True)
         # self.logger.debug('Approx Contour: %s' % str(approxContour))
         # self.logger.debug('Approx Contour: %s' % str(approxContour[0: 2]))
         # self.logger.debug('Approx Contour: %s' % str(approxContour[0: 4: 3]))
@@ -361,38 +342,88 @@ class Locator():    # {{{
         #         or abs(e1 - e3) / max(e1, e3) > 0.4:
         #     return False
 
+        # Filter by convexity.
+        hull = cv2.convexHull(contour)
+        convexity = area / cv2.contourArea(hull)
+        if convexity < 0.9:
+            if self.showImg:
+                img = cv2.putText(img,
+                                  'convexity: %f' % convexity,
+                                  (contour[0][0][0], contour[0][0][1]),
+                                  cv2.FONT_HERSHEY_COMPLEX_SMALL,
+                                  1,
+                                  255)
+            return False
+
+        # Filter by circularity.
+        cicularity = 4 * math.pi * area / length ** 2
+        if cicularity > 0.85:
+            if self.showImg:
+                img = cv2.putText(img,
+                                  'cicularity: %f' % cicularity,
+                                  (contour[0][0][0], contour[0][0][1]),
+                                  cv2.FONT_HERSHEY_COMPLEX_SMALL,
+                                  1,
+                                  255)
+            return False
+
         # Filter by similarity between contour and its minimum binding
         # rectangle.
         minRect = cv2.minAreaRect(contour)
         minRect = cv2.boxPoints(minRect)
-        if cv2.contourArea(contour) / cv2.contourArea(minRect) <= 0.6:
+        simi = cv2.contourArea(contour) / cv2.contourArea(minRect)
+        if simi <= 0.6:
+            if self.showImg:
+                img = cv2.putText(img,
+                                  'simi: %f' % simi,
+                                  (contour[0][0][0], contour[0][0][1]),
+                                  cv2.FONT_HERSHEY_COMPLEX_SMALL,
+                                  1,
+                                  255)
             return False
 
         moment = cv2.moments(contour, True)
         center = (moment['m10'] / moment['m00'],
                   moment['m01'] / moment['m00'])
         rate = 0.1
+        # Filter by center posiion.
         if center[0] < imgSize[0] * rate or center[0] > imgSize[0] * 0.9:
+            if self.showImg:
+                img = cv2.putText(img,
+                                  'center: %s' % str(center),
+                                  (contour[0][0][0], contour[0][0][1]),
+                                  cv2.FONT_HERSHEY_COMPLEX_SMALL,
+                                  1,
+                                  255)
             return False
 
-        if img[round(center[1])][round(center[0])] < 250:
-            return False
+        # if img[round(center[1])][round(center[0])] < 250:
+        #     return False
 
         return True    # }}}
 
     def __detectMarker(self, img):    # {{{
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        # th, binaryImg = cv2.threshold(gray, 150, 255, cv2.THRESH_OTSU)
-        # th, binaryImg = cv2.threshold(gray, (th) , 255, cv2.THRESH_TOZERO)
-        th, binaryImg = cv2.threshold(gray, 250, 255, cv2.THRESH_TOZERO)
-        # binaryImg = cv2.adaptiveThreshold(gray, 255,
+        binaryImg = gray
+        th, binaryImg = cv2.threshold(gray,
+                                      150,
+                                      255,
+                                      cv2.THRESH_OTSU | cv2.THRESH_TOZERO)
+
+        # When environment is darker, this method performs good.
+        # th, binaryImg = cv2.threshold(gray, 250, 255, cv2.THRESH_TOZERO)
+
+        # Adaptive threshold
+        # binaryImg = cv2.adaptiveThreshold(binaryImg, 255,
         #                                   cv2.ADAPTIVE_THRESH_MEAN_C,
         #                                   cv2.THRESH_BINARY,
-        #                                   81,
-        #                                   -20)
-        binaryImg = cv2.morphologyEx(binaryImg, cv2.MORPH_CLOSE, (21, 21))
+        #                                   7,
+        #                                   -10)
+
+        binaryImg = cv2.morphologyEx(binaryImg, cv2.MORPH_CLOSE, (31, 31))
+
         c, contours, hierarchy = cv2.findContours(binaryImg,
-                                                  cv2.RETR_LIST,
+                                                  cv2.RETR_EXTERNAL,
                                                   cv2.CHAIN_APPROX_SIMPLE)
 
         validContours = list()
@@ -409,23 +440,24 @@ class Locator():    # {{{
 
                 validContours.append(validResult)
 
-                if not self.isRelease:
-                    color = (round(random.random() * 255),
-                             round(random.random() * 255),
-                             round(random.random() * 255))
+                if self.showImg:
+                    color = (round(random.randrange(100, 255)),
+                             round(random.randrange(100, 255)),
+                             round(random.randrange(100, 255)))
                     img = cv2.drawContours(img,
                                            contours,
                                            i,
                                            color,
-                                           3,
+                                           -1,
                                            cv2.LINE_AA)
             except ZeroDivisionError:
                 continue
 
-        if self.isRelease:
+        if not self.showImg:
             return validContours
         else:
-            img = cv2.putText(img, str(len(validContours)),
+            img = cv2.putText(img,
+                              '%d / %d' % (len(validContours), len(contours)),
                               (0, round(img.shape[0] / 2)),
                               cv2.FONT_HERSHEY_COMPLEX_SMALL,
                               5,
@@ -436,10 +468,13 @@ class Locator():    # {{{
     def __locator(self, image):    # {{{
         loc = None
         rot = None
-        if self.isRelease:
+        code = 0
+        tmpStamp = time.time()
+        if not self.showImg:
             validContours = self.__detectMarker(image)
         else:
             validContours, binaryImg, image = self.__detectMarker(image)
+        self.logger.debug('__detectMarker: %s' % (time.time() - tmpStamp))
 
         calcImg = numpy.zeros([image.shape[0], image.shape[1], 3],
                               numpy.float32)
@@ -474,10 +509,10 @@ class Locator():    # {{{
             #         avgDis.append(c)
             #     else:
             #         marker = c
+            tmpStamp = time.time()
             jm = self.__findLabel(centriodsArray)
-            self.logger.debug('marker, %s' % str(marker))
-            self.logger.debug('jm, %s' % str(centriodsArray[jm]))
-            self.logger.debug('avgDis: %s' % str(avgDis))
+            self.logger.debug('__findLabel: %s' % (time.time() - tmpStamp))
+            jm = self.__findLabel(centriodsArray)
             marker = centriods[jm]
             avgDis = centriods
             avgDis.remove(avgDis[jm])
@@ -575,7 +610,7 @@ class Locator():    # {{{
             # }}}
 
             # Draw {{{
-            if not self.isRelease:
+            if self.showImg:
                 # c = [numpy.array([approximatedContours])]
                 # self.logger.debug('SContour: %s.' % str(c))
                 # calcImg = cv2.drawContours(calcImg,
@@ -645,12 +680,15 @@ class Locator():    # {{{
 
             # }}}
         else:
-            if not self.isRelease:
+            self.logger.warning('Contour error, contour: %d.'
+                                % len(validContours))
+            if self.showImg:
                 cv2.imshow('bina', cv2.resize(binaryImg,
                                               (round(binaryImg.shape[1] / 2),
                                                round(binaryImg.shape[0] / 2))))
+            code = 1
 
-        return loc, rot    # }}}
+        return loc, rot, code    # }}}
 # }}}
 
 
@@ -658,11 +696,12 @@ benchmark = False
 release = False
 lens = 0
 useServo = False
+showImg = False
 
-opts, args = getopt.getopt(sys.argv[1:], 'hbl:rs')
+opts, args = getopt.getopt(sys.argv[1:], 'hbl:rsw')
 for key, val in opts:
     if key == '-h':
-        print('Usage: run [-h] [-b] [-l len] [-d]')
+        print('Usage: run [-h] [-b] [-l len] [-r] [-w]')
         print('-h: Show this help.')
         print('-b: Run benchmark, print fps only.')
         print('-l len: Select len, can be 0 or 1.')
@@ -677,10 +716,12 @@ for key, val in opts:
             pass
         else:
             pass
-    if key == '-r':
-        release = True
+    if key == '-d':
+        release = False
     if key == '-s':
         useServo = True
+    if key == '-w':
+        showImg = True
 
 if useServo:
     import pca
@@ -689,5 +730,6 @@ if useServo:
 lctr = Locator(benchmark=benchmark,
                lens=lens,
                release=release,
-               useServo=useServo)
+               useServo=useServo,
+               showImg=showImg)
 lctr.run()
