@@ -123,7 +123,7 @@ def initiation():
     sonicThread = thread_sonic.SonicFunc(pwm=pwm, servoChannel=4, pins=pins,
                                          echo=15, trig=16,
                                          car=car, com=recvCom)
-    ridarThread = thread_ridar.RidarFunc(car, com)
+    ridarThread = thread_ridar.RidarFunc(car=car, com=recvCom)
 
     if isDebug:
         trackThread = thread_tracker.tracker(videoDev=0, car=car, com=recvCom)
