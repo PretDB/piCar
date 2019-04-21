@@ -13,6 +13,7 @@ class RidarFunc():    # {{{
         self.ridar.initRidar('/dev/ttyUSB0'.encode('ascii'))
         floatBuff = c_float * 8192
         self.dataCount = c_int(1)
+        self.dataCountp = pointer(self.dataCount)
         self.angles = floatBuff()
         self.distances = floatBuff()
         self.anglesp = pointer(self.angles)
@@ -82,7 +83,7 @@ class RidarFunc():    # {{{
 
     # Read distance in mm {{{
     def capture(self):
-        self.ridar.capture(self.anglesp, self.distancesp, 8192, self.dataCount)
+        self.ridar.capture(self.anglesp, self.distancesp, 8192, self.dataCountp)
         return
     # }}}
 
