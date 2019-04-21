@@ -162,9 +162,9 @@ class Locator():    # {{{
                 tvec, rvec, code = self.__locator(img)
 
                 if tvec is not None or rvec is not None:    # {{{
-                    loc = {'X': round(tvec[0], 2),
-                           'Y': round(tvec[1], 2),
-                           'Z': round(tvec[2], 2)}
+                    loc = {'X': round(tvec[0], 5),
+                           'Y': round(tvec[1], 5),
+                           'Z': round(tvec[2], 5)}
                     ang = round(rvec)
                     self.logger.debug('Calculated done, loc=%s, angle=%d.'
                                       % (str(loc), ang))
@@ -249,7 +249,8 @@ class Locator():    # {{{
                                                  (round(img.shape[1] / 2),
                                                   round(img.shape[0] / 2))))
                     if code == 1:
-                        cv2.waitKey(0)
+                        # cv2.waitKey(0)
+                        pass
                     key = cv2.waitKey(30)
                     if key == ord(' '):
                         key = cv2.waitKey(0)
@@ -304,18 +305,40 @@ class Locator():    # {{{
         return m[0][3]
         pass
 
-    def __validateContour(self, contour, img, imgSize=(1280, 720)):    # {{{
+    def __validateContour(self,
+                          contour,
+                          binaryImg,
+                          img,
+                          imgSize=(1280, 720)):    # {{{
+        # Filter by contour area.
         area = cv2.contourArea(contour)
         if area < 200 or area > 5000:
+            # if self.showImg:
+            #     img = cv2.putText(img,
+            #                       'area: %f' % area,
+            #                       (contour[0][0][0], contour[0][0][1]),
+            #                       cv2.FONT_HERSHEY_COMPLEX_SMALL,
+            #                       1,
+            #                       255)
+            return False
+
+        # Filter by center posiion.
+        moment = cv2.moments(contour, True)
+        center = (moment['m10'] / moment['m00'],
+                  moment['m01'] / moment['m00'])
+        rate = 0.1
+        if center[0] < imgSize[0] * rate or center[0] > imgSize[0] * 0.9:
             if self.showImg:
                 img = cv2.putText(img,
-                                  'area: %f' % area,
+                                  'center: %s' % str(center),
                                   (contour[0][0][0], contour[0][0][1]),
                                   cv2.FONT_HERSHEY_COMPLEX_SMALL,
                                   1,
                                   255)
             return False
-        # if not cv2.isContourConvex(contour):
+
+        # Filter by color.
+        # if binaryImg[round(center[1])][round(center[0])] < 250:
         #     return False
 
         # Filter by number of contours approxed whoes precision is defiened
@@ -382,53 +405,35 @@ class Locator():    # {{{
                                   255)
             return False
 
-        moment = cv2.moments(contour, True)
-        center = (moment['m10'] / moment['m00'],
-                  moment['m01'] / moment['m00'])
-        rate = 0.1
-        # Filter by center posiion.
-        if center[0] < imgSize[0] * rate or center[0] > imgSize[0] * 0.9:
-            if self.showImg:
-                img = cv2.putText(img,
-                                  'center: %s' % str(center),
-                                  (contour[0][0][0], contour[0][0][1]),
-                                  cv2.FONT_HERSHEY_COMPLEX_SMALL,
-                                  1,
-                                  255)
-            return False
-
-        # if img[round(center[1])][round(center[0])] < 250:
-        #     return False
-
         return True    # }}}
 
     def __detectMarker(self, img):    # {{{
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         binaryImg = gray
-        th, binaryImg = cv2.threshold(gray,
-                                      150,
-                                      255,
-                                      cv2.THRESH_OTSU | cv2.THRESH_TOZERO)
+        # th, binaryImg = cv2.threshold(gray,
+        #                               150,
+        #                               255,
+        #                               cv2.THRESH_OTSU | cv2.THRESH_TOZERO)
 
         # When environment is darker, this method performs good.
         # th, binaryImg = cv2.threshold(gray, 250, 255, cv2.THRESH_TOZERO)
 
         # Adaptive threshold
-        # binaryImg = cv2.adaptiveThreshold(binaryImg, 255,
-        #                                   cv2.ADAPTIVE_THRESH_MEAN_C,
-        #                                   cv2.THRESH_BINARY,
-        #                                   7,
-        #                                   -10)
+        binaryImg = cv2.adaptiveThreshold(binaryImg, 255,
+                                          cv2.ADAPTIVE_THRESH_MEAN_C,
+                                          cv2.THRESH_BINARY,
+                                          7,
+                                          -10)
 
         binaryImg = cv2.morphologyEx(binaryImg, cv2.MORPH_CLOSE, (31, 31))
 
         c, contours, hierarchy = cv2.findContours(binaryImg,
                                                   cv2.RETR_EXTERNAL,
-                                                  cv2.CHAIN_APPROX_SIMPLE)
+                                                  cv2.CHAIN_APPROX_TC89_L1)
 
         validContours = list()
         for i in range(len(contours)):
-            if not self.__validateContour(contours[i], binaryImg):
+            if not self.__validateContour(contours[i], binaryImg, img):
                 continue
 
             moment = cv2.moments(contours[i], True)
@@ -600,9 +605,9 @@ class Locator():    # {{{
                         round(c2wTVec[0][2], 2))
             loc = printLoc
             rot = angZ
-            loc = (round((-loc[0] / 1000.0 + 3) / 6, 2),
-                   round((loc[1] / 1000.0 + 2) / 4, 2),
-                   round(loc[2] / 1000.0, 2))
+            loc = (round((-loc[0] / 1000.0 + 3) / 6, 6),
+                   round((loc[1] / 1000.0 + 2) / 4, 6),
+                   round(loc[2] / 1000.0, 6))
 
             if rot < 0:
                 rot += 360
