@@ -17,6 +17,7 @@ import thread_tracker
 import thread_light
 import thread_hd
 import thread_sd
+import thread_ridar
 # }}}
 # }}}
 
@@ -47,6 +48,7 @@ fireThread = None
 hdThread = None
 sdThread = None
 trackThread = None
+ridarThread = None
 # }}}
 # }}}
 
@@ -70,6 +72,7 @@ def initiation():
     global sdThread
     global sonicThread
     global trackThread
+    global ridarThread
 
     if isDebug:
         pwm = fake.PCA()
@@ -120,6 +123,7 @@ def initiation():
     sonicThread = thread_sonic.SonicFunc(pwm=pwm, servoChannel=4, pins=pins,
                                          echo=15, trig=16,
                                          car=car, com=recvCom)
+    ridarThread = thread_ridar.RidarFunc(car, com)
 
     if isDebug:
         trackThread = thread_tracker.tracker(videoDev=0, car=car, com=recvCom)
@@ -157,13 +161,13 @@ if __name__ == "__main__":
                 hdThread.run()
                 pass
             elif com == Command.IR:
-                irThread.run()
+                ridarThread.run()
                 pass
             elif com == Command.Light:
                 lightThread.run()
                 pass
             elif com == Command.Sonic:
-                sonicThread.run()
+                ridarThread.run()
                 pass
             elif com == Command.SoundDetect:
                 sdThread.run()
