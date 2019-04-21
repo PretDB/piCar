@@ -41,7 +41,9 @@ class RidarFunc():    # {{{
 
     # Data pre-process, fix ridar installation bias.    # {{{
     def preprocess(self):
-        for i in range(self.dataCount):
+        return
+        print(self.dataCount.value)
+        for i in range(self.dataCount.value):
             df2 = self.distances[i] ** 2 + self.ridarBias ** 2\
                 - 2 * self.distances[i] * self.ridarBias *\
                 math.cos(self.angles[i])
@@ -53,30 +55,37 @@ class RidarFunc():    # {{{
     def postprocess(self):
         c = (Command.Stop, 0)
 
-        tick = self.dataCount / 360.0
+        tick = self.dataCount.value / 360.0
         leftFrontAng = 315.0
         leftMidAng = 270.0
         rightFrontAng = 30.0
-        rightMidAng = 5.0
+        rightMidAng = 40.0
         leftFrontIndex = int(leftFrontAng / tick)
         leftMidIndex = int(leftMidAng / tick)
         rightFrontIndex = int(rightFrontAng / tick)
         rightMidIndex = int(rightMidAng / tick)
-        frontDiss = self.distances[rightFrontIndex:]\
-            + self.distances[0: leftFrontIndex]
-        leftDiss = self.distances[leftFrontIndex: leftMidIndex]
-        rightDiss = self.distances[rightMidIndex: rightFrontIndex]
+        frontDiss = self.distances[:rightFrontIndex]\
+            + self.distances[leftFrontIndex:self.dataCount.value - 1]
+        leftDiss = self.distances[leftMidIndex: leftFrontIndex]
+        rightDiss = self.distances[rightFrontIndex: rightMidIndex]
+        while 0.0 in frontDiss:
+            frontDiss.remove(0.0)
+        while 0.0 in leftDiss:
+            leftDiss.remove(0.0)
+        while 0.0 in rightDiss:
+            rightDiss.remove(0.0)
 
         frontDis = min(frontDiss)
         leftDis = min(leftDiss)
         rightDis = min(rightDiss)
+        print(frontDis, leftDis, rightDis)
 
         if rightDis < 500:
             c = (Command.LeftRotate, 0)
         elif leftDis < 500:
             c = (Command.RightRotate, 0)
         elif frontDis < 500:
-            c = (Command.RightShift, 2)
+            c = (Command.RightRotate, 2)
         else:
             c = (Command.Forward, 0)
         return c    # }}}
