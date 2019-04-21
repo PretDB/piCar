@@ -18,8 +18,9 @@ class Mecanum:
 
         self.state = Command.Stop
 
-        self.defaultSpeed = 0.25
-        self.shiftGain = 1.3
+        self.defaultSpeed = 0.2
+        self.shiftGain = 1.5
+        self.rotateGain = 0.8
 
         self.enPin = enPin
 
@@ -49,6 +50,7 @@ class Mecanum:
             pass    # }}}
 
         elif com == Command.LeftRotate:    # {{{
+            speed = speed * self.rotateGain
             self.hl.rotate(True, speed*self.shiftGain)
             self.hr.rotate(False, speed*self.shiftGain)
             self.tl.rotate(False, speed)
@@ -56,6 +58,7 @@ class Mecanum:
             pass    # }}}
 
         elif com == Command.RightRotate:    # {{{
+            speed = speed * self.rotateGain
             self.hl.rotate(False, speed*self.shiftGain)
             self.hr.rotate(True, speed*self.shiftGain)
             self.tl.rotate(True, speed)
@@ -63,7 +66,6 @@ class Mecanum:
             pass    # }}}
 
         elif com == Command.LeftShift:    # {{{
-            speed = speed * 1.2
             self.hl.rotate(True, speed*self.shiftGain)
             self.hr.rotate(False, speed*self.shiftGain)
             self.tl.rotate(True, speed)
@@ -71,7 +73,6 @@ class Mecanum:
             pass    # }}}
 
         elif com == Command.RightShift:    # {{{
-            speed = speed * 1.2
             self.hl.rotate(False, speed*self.shiftGain)
             self.hr.rotate(True, speed*self.shiftGain)
             self.tl.rotate(False, speed)
