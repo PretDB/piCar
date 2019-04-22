@@ -126,7 +126,9 @@ class Locator():    # {{{
                           (self.cam['dev'].set(cv2.CAP_PROP_FRAME_HEIGHT,
                                                720) &
                            self.cam['dev'].set(cv2.CAP_PROP_FRAME_WIDTH,
-                                               1280))
+                                               1280) &
+                           self.cam['dev'].set(cv2.CAP_PROP_BUFFERSIZE,
+                                               1))
                           else 'Failed'))
         for i in range(3):
             read, img = self.cam['dev'].read()
