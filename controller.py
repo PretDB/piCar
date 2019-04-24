@@ -90,7 +90,6 @@ def initiation():
         wiringpi.pinMode(28, wiringpi.OUTPUT)
         wiringpi.digitalWrite(28, wiringpi.HIGH)
         car = mecanum.Mecanum(pwm, 0, 1, 2, 3, pins, 1, 2, 3, 4, 28)
-        car.defaultSpeed = 0.2
         car.move(Command.Stop)
 
     # Server related initiation. {{{
@@ -179,7 +178,7 @@ if __name__ == "__main__":
     # }}}
 
     # Exception {{{
-    except(KeyboardInterrupt):
+    except:
         if isDebug:
             pass
         else:
@@ -189,6 +188,7 @@ if __name__ == "__main__":
             wiringpi.pinMode(28, wiringpi.OUTPUT)
             wiringpi.digitalWrite(28, wiringpi.LOW)
             print('keyboard interrupt')
+            ridarThread.deinit()
 
         print(traceback.format_exc())
         sys.exit(-1)

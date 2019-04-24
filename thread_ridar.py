@@ -56,36 +56,59 @@ class RidarFunc():    # {{{
         c = (Command.Stop, 0)
 
         tick = self.dataCount.value / 360.0
-        leftFrontAng = 315.0
-        leftMidAng = 270.0
-        rightFrontAng = 30.0
-        rightMidAng = 40.0
-        leftFrontIndex = int(leftFrontAng / tick)
-        leftMidIndex = int(leftMidAng / tick)
-        rightFrontIndex = int(rightFrontAng / tick)
-        rightMidIndex = int(rightMidAng / tick)
-        frontDiss = self.distances[:rightFrontIndex]\
-            + self.distances[leftFrontIndex:self.dataCount.value - 1]
-        leftDiss = self.distances[leftMidIndex: leftFrontIndex]
-        rightDiss = self.distances[rightFrontIndex: rightMidIndex]
-        while 0.0 in frontDiss:
-            frontDiss.remove(0.0)
-        while 0.0 in leftDiss:
-            leftDiss.remove(0.0)
-        while 0.0 in rightDiss:
-            rightDiss.remove(0.0)
+        frontLeftAng = 343.0
+        frontRightAng = 20.0
+        leftFrontAng = 277.0
+        leftBackAng = 247.0
+        rightFrontAng = 75.0
+        rightBackAng = 90.0
 
-        frontDis = min(frontDiss)
+        frontLeftIndex = int(frontLeftAng / tick)
+        frontRightIndex = int(frontRightAng / tick)
+        leftFrontIndex = int(leftFrontAng / tick)
+        leftBackIndex = int(leftBackAng / tick)
+        rightFrontIndex = int(rightFrontAng / tick)
+        rightBackIndex = int(rightBackAng / tick)
+
+        frontLeftDiss = self.distances[frontLeftIndex: ]
+        frontRightDiss = self.distances[: frontRightIndex]
+        leftDiss = self.distances[leftBackIndex: leftFrontIndex]
+        rightDiss = self.distances[rightFrontIndex: rightBackIndex]
+
+        frontLeftDiss.sort()
+        frontRightDiss.sort()
+        leftDiss.sort()
+        rightDiss.sort()
+
+        try:
+            while frontLeftDiss[0] == 0.0:
+                frontLeftDiss.remove(0.0)
+            while frontRightDiss[0] == 0.0:
+                frontRightDiss.remove(0.0)
+            while leftDiss[0] == 0.0:
+                leftDiss.remove(0.0)
+            while rightDiss[0] == 0.0:
+                rightDiss.remove(0.0)
+        except:
+            return (Command.Forward, 0)
+
+        frontLeftDis = min(frontLeftDiss)
+        frontRightDis = min(frontRightDiss)
         leftDis = min(leftDiss)
         rightDis = min(rightDiss)
-        print(frontDis, leftDis, rightDis)
+        print(frontLeftDis, frontRightDis, leftDis, rightDis)
 
-        if rightDis < 500:
-            c = (Command.LeftRotate, 0)
-        elif leftDis < 500:
+        print('logic: %s' % time.time())
+        if frontLeftDis < 600.0 and frontRightDis < 600.0:
+            c = (Command.RightRotate, 1)
+        elif frontLeftDis < 600.0:
             c = (Command.RightRotate, 0)
-        elif frontDis < 500:
-            c = (Command.RightRotate, 2)
+        elif frontRightDis < 600.0:
+            c = (Command.LeftRotate, 0)
+        elif leftDis < 600.0:
+            c = (Command.RightShift, 0)
+        elif rightDis < 1200.0:
+            c = (Command.LeftShift, 0)
         else:
             c = (Command.Forward, 0)
         return c    # }}}
@@ -95,6 +118,9 @@ class RidarFunc():    # {{{
         self.ridar.capture(self.anglesp, self.distancesp, 8192, self.dataCountp)
         return
     # }}}
+
+    def deinit(self):
+        self.ridar.deinitRidar()
 
     # Clampp angle.    # {{{
     def _clamp(self, ang):

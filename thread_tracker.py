@@ -50,7 +50,7 @@ class tracker():    # {{{
             c = Command(self.com.value)
             if c == Command.Track:
                 self.command = self.getDir()
-                self.car.carMove(self.command, 0.22)
+                self.car.move(self.command)
             else:
                 self.car.move(Command.Stop)
                 break

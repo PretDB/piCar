@@ -18,7 +18,7 @@ class Mecanum:
 
         self.state = Command.Stop
 
-        self.defaultSpeed = 0.75
+        self.defaultSpeed = 0.5
         self.shiftGain = 1
         self.rotateGain = 1
 
