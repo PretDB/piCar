@@ -1,6 +1,7 @@
 import time
 import math
 import bisect
+import qmc
 from command import Command
 from ctypes import CDLL, c_float, c_int, pointer
 
@@ -8,6 +9,7 @@ from ctypes import CDLL, c_float, c_int, pointer
 class RidarFunc():    # {{{
     # Init {{{
     def __init__(self, car, com):
+        self.compass = qmc.QMC(False)
         self.car = car
         self.com = com
         self.ridar = CDLL('/home/pi/piCar/ridar.so')
@@ -101,27 +103,9 @@ class RidarFunc():    # {{{
         rightDis = min(rightDiss)
         print(frontLeftDis, frontRightDis, leftDis, rightDis)
 
-        if frontLeftDis >= 600.0 and frontRightDis >= 600.0:
-            c.append((Command.Forward, 0))
-        elif frontLeftDis < 600.0 and frontRightDis < 600.0 and leftDis < 600.0 and rightDis < 1200.0:
-            for i in range(10):
-                c.append((Command.Backward, 0.1))
-            for i in range(10):
-                c.append((Command.RightRotate, 0.1))
-        elif frontLeftDis < 600.0 or frontRightDis < 600.0:
-            if frontLeftDis < frontRightDis:
-                c.append((Command.RightRotate, 0.5))
-            else:
-                c.append((Command.LeftRotate, 0.5))
-        elif leftDis < 600.0 and rightDis - 600.0 < 600.0:
-            if leftDis < rightDis - 600.0:
-                c.append((Command.LeftShift, 0))
-            else:
-                c.append((Command.RightShift, 0))
-        elif rightDis < 1200.0:
-            c.append((Command.LeftShift, 0))
-        elif leftDis < 600.0:
-            c.append((Command.RightShift, 0))
+        if frontLeftDis < 600.0 or frontRightDis < 600.0 or leftDis < 600.0 or rightDis < 600.0:
+            self.avoidance()
+            print('avoidance')
         else:
             c.append((Command.Forward, 0))
         return c    # }}}
@@ -160,4 +144,32 @@ class RidarFunc():    # {{{
         elif ang < 360:
             return ang - 180.0
         return ang    # }}}
+
+    def avoidance(self):
+        maxdis = max(self.distances)
+        i = list(self.distances).index(maxdis)
+        maxdisang = self.angles[i]
+        print('maxdis = %f @ %f' % (maxdis, maxdisang))
+
+        anginit = self.compass.readAngle()
+        targetang = maxdisang + anginit
+        if targetang < 0:
+            targetang += 360.0
+        while targetang > 360.0:
+            targetang -= 360.0
+        com = None
+        diff = abs(targetang - anginit)
+        print('start: %f, target: %f, diff: %f' % (anginit, targetang, diff))
+        if diff > 180: 
+            com = Command.LeftRotate
+        else:
+            com = Command.RightRotate
+        print('Dir: %s' % str(com))
+        while Command(self.com.value) == Command.Sonic or Command(self.com.value) == Command.IR:
+            angc = self.compass.readAngle()
+            if abs(angc - targetang) > 5.0:
+                self.car.move(com)
+            else:
+                self.car.move(Command.Stop)
+                return
 # }}}

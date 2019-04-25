@@ -17,7 +17,8 @@ import thread_tracker
 import thread_light
 import thread_hd
 import thread_sd
-import thread_ridar
+# import thread_ridar
+import ridar2
 # }}}
 # }}}
 
@@ -74,7 +75,8 @@ def initiation():
     global trackThread
     global ridarThread
 
-    if isDebug:
+    # if isDebug:
+    if False:
         pwm = fake.PCA()
         pins = fake.MCP()
         car = fake.Mecanum()
@@ -122,13 +124,10 @@ def initiation():
     sonicThread = thread_sonic.SonicFunc(pwm=pwm, servoChannel=4, pins=pins,
                                          echo=15, trig=16,
                                          car=car, com=recvCom)
-    ridarThread = thread_ridar.RidarFunc(car=car, com=recvCom)
+    ridarThread = ridar2.RidarFunc(car=car, com=recvCom)
 
-    if isDebug:
-        trackThread = thread_tracker.tracker(videoDev=0, car=car, com=recvCom)
-    else:
-        trackThread = thread_tracker.tracker(videoDev='/dev/tracker',
-                                             car=car, com=recvCom)
+    trackThread = thread_tracker.tracker(videoDev='/dev/tracker',
+                                         car=car, com=recvCom, debug=isDebug)
     # }}}
 
     sonicThread.servo.setAngle(0)
@@ -175,22 +174,18 @@ if __name__ == "__main__":
                 trackThread.run()
                 pass
             pass
+            ridarThread.run()
     # }}}
 
     # Exception {{{
     except:
-        if isDebug:
-            pass
-        else:
-            import wiringpi
-            car.move(Command.Stop)
-            wiringpi.wiringPiSetup()
-            wiringpi.pinMode(28, wiringpi.OUTPUT)
-            wiringpi.digitalWrite(28, wiringpi.LOW)
-            print('keyboard interrupt')
-            ridarThread.deinit()
-
+        import wiringpi
+        car.move(Command.Stop)
+        wiringpi.wiringPiSetup()
+        wiringpi.pinMode(28, wiringpi.OUTPUT)
+        wiringpi.digitalWrite(28, wiringpi.LOW)
         print(traceback.format_exc())
+        ridarThread.ridar.deinitRidar()
         sys.exit(-1)
     # }}}
 # }}}
