@@ -11,6 +11,7 @@ import math
 import random
 import socket
 import json
+import threading
 
 
 class Locator():    # {{{
@@ -126,9 +127,7 @@ class Locator():    # {{{
                           (self.cam['dev'].set(cv2.CAP_PROP_FRAME_HEIGHT,
                                                720) &
                            self.cam['dev'].set(cv2.CAP_PROP_FRAME_WIDTH,
-                                               1280) &
-                           self.cam['dev'].set(cv2.CAP_PROP_BUFFERSIZE,
-                                               1))
+                                               1280))
                           else 'Failed'))
         for i in range(3):
             read, img = self.cam['dev'].read()
@@ -147,6 +146,11 @@ class Locator():    # {{{
         self.showImg = showImg
         if showImg:
             cv2.namedWindow('raw')
+        if useServo:
+            def compassUpdater():
+                self.lastCompassAngle = self.compass.readAngle()
+            self.compassReader = threading.Thread(target=compassUpdater)
+            self.compassReader.start()
         pass    # }}}
 
     def run(self):    # {{{
@@ -154,12 +158,16 @@ class Locator():    # {{{
         while True:
             self.logger.debug('=====================================')
             last = time.time()
-            if self.useServo:
-                self.lastCompassAngle = self.compass.readAngle()
-            # read, img = self.cam['dev'].read()
+            self.logger.debug('Exposure: %f' % self.cam['dev'].get(cv2.CAP_PROP_EXPOSURE))
+            # if self.useServo:
+            #     self.lastCompassAngle = self.compass.readAngle()
+
+            buffCount = 0
+            self.logger.warning('Clear start: @ %f' % (time.time() - last))
+            for i in range(4):
+                self.cam['dev'].grab()
+                self.logger.warning('Buff count: %d @ %f' % (buffCount, time.time() - last))
             read, img = self.cam['dev'].read()
-            while time.time() - last < 0.25:
-                read, img = self.cam['dev'].read()
             if read:    # {{{
                 tvec, rvec, code = self.__locator(img)
 
@@ -307,12 +315,7 @@ class Locator():    # {{{
         return m[0][3]
         pass
 
-    def __validateContour(self,
-                          contour,
-                          binaryImg,
-                          img,
-                          imgSize=(1280, 720)):    # {{{
-        # Filter by contour area.
+    def __validateContour(self, contour, img, imgSize=(1280, 720)):    # {{{
         area = cv2.contourArea(contour)
         if area < 200 or area > 5000:
             # if self.showImg:
@@ -323,24 +326,7 @@ class Locator():    # {{{
             #                       1,
             #                       255)
             return False
-
-        # Filter by center posiion.
-        moment = cv2.moments(contour, True)
-        center = (moment['m10'] / moment['m00'],
-                  moment['m01'] / moment['m00'])
-        rate = 0.1
-        if center[0] < imgSize[0] * rate or center[0] > imgSize[0] * 0.9:
-            if self.showImg:
-                img = cv2.putText(img,
-                                  'center: %s' % str(center),
-                                  (contour[0][0][0], contour[0][0][1]),
-                                  cv2.FONT_HERSHEY_COMPLEX_SMALL,
-                                  1,
-                                  255)
-            return False
-
-        # Filter by color.
-        # if binaryImg[round(center[1])][round(center[0])] < 250:
+        # if not cv2.isContourConvex(contour):
         #     return False
 
         # Filter by number of contours approxed whoes precision is defiened
@@ -407,43 +393,63 @@ class Locator():    # {{{
                                   255)
             return False
 
+        moment = cv2.moments(contour, True)
+        center = (moment['m10'] / moment['m00'],
+                  moment['m01'] / moment['m00'])
+        rate = 0.1
+        # Filter by center posiion.
+        if center[0] < imgSize[0] * rate or center[0] > imgSize[0] * 0.9:
+            if self.showImg:
+                img = cv2.putText(img,
+                                  'center: %s' % str(center),
+                                  (contour[0][0][0], contour[0][0][1]),
+                                  cv2.FONT_HERSHEY_COMPLEX_SMALL,
+                                  1,
+                                  255)
+            return False
+
+        # if img[round(center[1])][round(center[0])] < 250:
+        #     return False
+
         return True    # }}}
 
     def __detectMarker(self, img):    # {{{
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         binaryImg = gray
-        # th, binaryImg = cv2.threshold(gray,
-        #                               150,
-        #                               255,
-        #                               cv2.THRESH_OTSU | cv2.THRESH_TOZERO)
+        th, binaryImg = cv2.threshold(gray,
+                                      250,
+                                      255,
+                                      cv2.THRESH_BINARY)
 
         # When environment is darker, this method performs good.
         # th, binaryImg = cv2.threshold(gray, 250, 255, cv2.THRESH_TOZERO)
 
         # Adaptive threshold
-        binaryImg = cv2.adaptiveThreshold(binaryImg, 255,
-                                          cv2.ADAPTIVE_THRESH_MEAN_C,
-                                          cv2.THRESH_BINARY,
-                                          7,
-                                          -10)
+        # binaryImg = cv2.adaptiveThreshold(binaryImg, 255,
+        #                                   cv2.ADAPTIVE_THRESH_MEAN_C,
+        #                                   cv2.THRESH_BINARY,
+        #                                   7,
+        #                                   -10)
 
         binaryImg = cv2.morphologyEx(binaryImg, cv2.MORPH_CLOSE, (31, 31))
 
         c, contours, hierarchy = cv2.findContours(binaryImg,
                                                   cv2.RETR_EXTERNAL,
-                                                  cv2.CHAIN_APPROX_TC89_L1)
+                                                  cv2.CHAIN_APPROX_SIMPLE)
 
         validContours = list()
         for i in range(len(contours)):
-            if not self.__validateContour(contours[i], binaryImg, img):
+            if not self.__validateContour(contours[i], binaryImg):
                 continue
 
             moment = cv2.moments(contours[i], True)
             try:
                 centriod = (moment['m10'] / moment['m00'],
                             moment['m01'] / moment['m00'])
+                ma = cv2.contourArea(contours[i])
                 validResult = {'contour': contours[i],
-                               'centriod': centriod}
+                               'centriod': centriod,
+                               'mass': ma}
 
                 validContours.append(validResult)
 
@@ -455,7 +461,7 @@ class Locator():    # {{{
                                            contours,
                                            i,
                                            color,
-                                           -1,
+                                           2,
                                            cv2.LINE_AA)
             except ZeroDivisionError:
                 continue
@@ -466,9 +472,9 @@ class Locator():    # {{{
             img = cv2.putText(img,
                               '%d / %d' % (len(validContours), len(contours)),
                               (0, round(img.shape[0] / 2)),
-                              cv2.FONT_HERSHEY_COMPLEX_SMALL,
+                              cv2.FONT_HERSHEY_SIMPLEX,
                               5,
-                              (0, 255, 0))
+                              (0, 0, 255))
             return validContours, binaryImg, img
         pass    # }}}
 
@@ -487,7 +493,10 @@ class Locator():    # {{{
                               numpy.float32)
         markedImg = image
 
-        if len(validContours) == 5:    # Got valid contours {{{
+        if len(validContours) >= 5:    # Got valid contours {{{
+            # Pick the first five big contour.
+            validContours.sort(key=(lambda x: x['mass']), reverse=True)
+            validContours = validContours[:5]
             # Calculate the miniman enclosing circle
             centriods = [p['centriod'] for p in validContours]
             centriodsArray = numpy.array(centriods, numpy.float32)
@@ -705,14 +714,14 @@ lens = 0
 useServo = False
 showImg = False
 
-opts, args = getopt.getopt(sys.argv[1:], 'hbl:rsw')
+opts, args = getopt.getopt(sys.argv[1:], 'hbl:dsw')
 for key, val in opts:
     if key == '-h':
-        print('Usage: run [-h] [-b] [-l len] [-r] [-w]')
+        print('Usage: run [-h] [-b] [-l len] [-d] [-w]')
         print('-h: Show this help.')
         print('-b: Run benchmark, print fps only.')
         print('-l len: Select len, can be 0 or 1.')
-        print('-r: Run under release mode, use smaller marker.')
+        print('-d: Run under debug mode.')
         sys.exit(0)
     if key == '-b':
         benchmark = True
