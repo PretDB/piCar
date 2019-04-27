@@ -166,6 +166,7 @@ if __name__ == "__main__":
                 pass
             elif com == Command.Sonic:
                 sonicThread.run()
+                irThread.run()
                 pass
             elif com == Command.SoundDetect:
                 sdThread.run()

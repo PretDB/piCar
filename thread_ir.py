@@ -23,30 +23,28 @@ class IRFunc():    # {{{
 
     # Run, ir loop {{{
     def run(self):
-        while True:
-            time.sleep(0.1)
-            c = Command(self.com.value)
-            if c == Command.IR or c == Command.Sonic:
-                llstate = self.pins.digitalRead(self.llchannel)
-                hlstate = self.pins.digitalRead(self.hlchannel)
-                hrstate = self.pins.digitalRead(self.hrchannel)
-                rrstate = self.pins.digitalRead(self.rrchannel)
+        time.sleep(0.1)
+        c = Command(self.com.value)
+        if c == Command.IR or c == Command.Sonic:
+            llstate = self.pins.digitalRead(self.llchannel)
+            hlstate = self.pins.digitalRead(self.hlchannel)
+            hrstate = self.pins.digitalRead(self.hrchannel)
+            rrstate = self.pins.digitalRead(self.rrchannel)
 
-                if hlstate == self.pins.LOW and hrstate == self.pins.LOW:
-                    self.car.move(Command.RightRotate)
-                elif hlstate == self.pins.LOW:
-                    self.car.move(Command.RightRotate)
-                elif llstate == self.pins.LOW:
-                    self.car.move(Command.RightShift)
-                elif hrstate == self.pins.LOW:
-                    self.car.move(Command.LeftRotate)
-                elif rrstate == self.pins.LOW:
-                    self.car.move(Command.LeftShift)
-                else:
-                    self.car.move(Command.Forward)
+            if hlstate == self.pins.LOW and hrstate == self.pins.LOW:
+                self.car.move(Command.RightRotate)
+            elif hlstate == self.pins.LOW:
+                self.car.move(Command.RightRotate)
+            elif llstate == self.pins.LOW:
+                self.car.move(Command.RightShift)
+            elif hrstate == self.pins.LOW:
+                self.car.move(Command.LeftRotate)
+            elif rrstate == self.pins.LOW:
+                self.car.move(Command.LeftShift)
             else:
-                self.car.move(Command.Stop)
-                break
+                self.car.move(Command.Forward)
+        else:
+            self.car.move(Command.Stop)
         return
     # }}}
 # }}}

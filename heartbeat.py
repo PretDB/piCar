@@ -33,7 +33,7 @@ while True:
     dataByte = dataRaw.encode('utf-8')
 
     s.sendto(dataByte, address)
-    print(dataRaw)
-    print(time.ctime(), 'count: ', heartbeatCount, )
+    # print(dataRaw)
+    # print(time.ctime(), 'count: ', heartbeatCount, )
 
     time.sleep(0.5)
