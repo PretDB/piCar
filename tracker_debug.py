@@ -24,7 +24,7 @@ if __name__ == "__main__":
     cv2.namedWindow('gray')
     cv2.namedWindow('binary')
     cv2.namedWindow('dil')
-    cam = cv2.VideoCapture(1)
+    cam = cv2.VideoCapture('/dev/tracker')
 
     element = cv2.getStructuringElement(cv2.MORPH_RECT, (10, 10))
     cmd = command.Command.Stop

@@ -17,4 +17,5 @@ class Command(Enum):
     HumanDetect = 13
     FireDetect = 14
     SoundDetect = 15
+    Ridar = 16
     Track = 1000

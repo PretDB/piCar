@@ -159,22 +159,23 @@ if __name__ == "__main__":
                 hdThread.run()
                 pass
             elif com == Command.IR:
-                ridarThread.run()
+                irThread.run()
                 pass
             elif com == Command.Light:
                 lightThread.run()
                 pass
             elif com == Command.Sonic:
-                ridarThread.run()
+                sonicThread.run()
                 pass
             elif com == Command.SoundDetect:
                 sdThread.run()
                 pass
             elif com == Command.Track:
                 trackThread.run()
+            elif com == Command.Ridar:
+                ridarThread.run()
                 pass
             pass
-            ridarThread.run()
     # }}}
 
     # Exception {{{
