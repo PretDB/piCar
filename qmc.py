@@ -17,7 +17,7 @@ class QMC:
         self.zgain = 1
         if readCali:
             try:
-                f = open('cali.conf', 'r')
+                f = open('/home/pi/piCar/cali.conf', 'r')
                 self.xoff = float(f.readline())
                 self.yoff = float(f.readline())
                 self.zoff = float(f.readline())
@@ -25,7 +25,7 @@ class QMC:
                 self.ygain = float(f.readline())
                 self.zgain = float(f.readline())
             except(FileNotFoundError):
-                f = open('cali.conf', 'w')
+                f = open('/home/pi/piCar/cali.conf', 'w')
                 f.flush()
                 f.close()
 
@@ -113,7 +113,7 @@ class QMC:
         zgain = (xmax - xmin) / (zmax - zmin)
 
         if write:
-            f = open('cali.conf', 'w')
+            f = open('/home/pi/piCar/cali.conf', 'w')
             f.write(str(xoff) + '\n')
             f.write(str(yoff) + '\n')
             f.write(str(zoff) + '\n')
