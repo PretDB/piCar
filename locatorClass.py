@@ -1,11 +1,10 @@
 #!/usr/bin/python3
 import cv2
 import numpy
-import sys
-import getopt
 import time
 import logging
 from logging.handlers import RotatingFileHandler
+from multiprocessing import Value
 import cmath
 import math
 import random
@@ -19,7 +18,9 @@ class Locator():    # {{{
                  lens=0,
                  release=True,
                  useServo=False,
-                 showImg=False):    # {{{
+                 showImg=False,
+                 setCalib=None,
+                 isDebug=None):    # {{{
         # Initiate network {{{
         self.targetAddress = ('<broadcast>', 6868)
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -35,6 +36,9 @@ class Locator():    # {{{
         # Servo initiation if needed. {{{
         self.useServo = useServo
         if useServo:
+            import pca
+            import servo
+            import qmc
             pwm = pca.PCA()
             self.servo = servo.Servo(pwm, 4, maxAngle=270)
             self.servo.setAngle(self.servo.maxAngle / 2)
@@ -115,6 +119,134 @@ class Locator():    # {{{
         self.logger.info('Len %s loaded.' % (lens))
         self.cam['dev'] = cv2.VideoCapture('/dev/locator')    # }}}
 
+        for i in range(3):
+            read, img = self.cam['dev'].read()
+            self.logger.info('Attempt to read image from camera at ' +
+                             ('%s tries: %s') %
+                             (i + 1, 'Success' if read else 'Failed'))
+            if read:
+                break
+            else:
+                if i == 2:
+                    self.logger.critical('Camera is not available.')
+
+        self.lastLocateTime = time.time()
+        self.nextLocateTime = time.time()
+        self.tvec, self.rvec = None, None
+        self.logger.info('Locator initiation done, start main thread.')
+        self.showImg = showImg
+        self.setCalib = setCalib
+        if showImg:
+            cv2.namedWindow('raw')
+        if useServo:
+            # def compassUpdater():
+            #     self.lastCompassAngle = self.compass.readAngle()
+            # self.compassReader = threading.Thread(target=compassUpdater)
+            # self.compassReader.start()
+            pass
+        pass    # }}}
+
+    def oneEpoch(self, img):
+        self.logger.debug('============== Epoch =============')
+        tvec, rvec, code, markedImg = self.__locator(img)
+        if time.time() - self.lastLocateTime < 0.5:
+            return markedImg
+        if time.time() < self.nextLocateTime:
+            return markedImg
+        self.lastLocateTime = time.time()
+
+        if tvec is not None or rvec is not None:    # {{{
+            loc = {'X': round(tvec[0], 5),
+                   'Y': round(tvec[1], 5),
+                   'Z': round(tvec[2], 5)}
+            ang = round(rvec)
+            self.logger.debug('Calculated done, loc=%s, angle=%d.'
+                              % (str(loc), ang))
+
+            # if self.tvec is not None:
+            #     dis = ((tvec[0] - self.tvec[0]) ** 2 +
+            #            (tvec[1] - self.tvec[1]) ** 2)
+            #     self.logger.debug('Distance: %f', dis)
+            #     if dis > 0.2 ** 2:
+            #         continue
+
+            if self.useServo:    # {{{
+                thresh = 2
+                error = 0
+                if ang < 90 and ang - 0 > thresh:
+                    error = -ang
+                    pass
+                elif ang < 270 and abs(ang - 180) > thresh:
+                    error = 180 - ang
+                    pass
+                elif ang > 270 and 360 - ang > thresh:
+                    error = 360 - ang
+
+                self.logger.debug('Fix: ' + str(error))
+                # Check servo angle.
+                if self.servo.angle + error >\
+                        self.servo.maxAngle:
+                    error = error - 180
+                elif self.servo.angle + error < 0:
+                    error = 180 + error
+                    ang -= 180
+
+                self.logger.debug('Post Fix: '
+                                  + str(error))
+                self.logger.debug('Servo: %d -> %d'
+                                  % (self.servo.angle,
+                                     self.servo.angle + error))
+                self.servo.setAngle(self.servo.angle
+                                    + error)
+                # time.sleep(abs(error) * 0.008)
+                self.nextLocateTime = time.time() + abs(error) * 0.008
+                ang += self.servo.angle + error
+
+            # }}}
+
+            ang -= 35
+            self.logger.debug('orientation: %d' % ang)
+            self.heartbeatPackage['Msg'] = {'position': loc,
+                                            'orientation': ang}
+            self.tvec, self.rvec = tvec, rvec
+            dataRaw = json.dumps(self.heartbeatPackage)
+            dataByte = dataRaw.encode('utf-8')
+            self.socket.sendto(dataByte, self.targetAddress)
+            # self.logger.debug('Package: %s' % dataRaw)
+            self.logger.debug('Locate: %s' % loc)
+            # }}}
+        else:    # {{{
+            self.logger.warning('Locate failed, no valid loc got, '
+                                + 'last loc %s'
+                                % str(self.tvec) +
+                                ', last orien: %s'
+                                % str(self.rvec))
+            self.heartbeatPackage['Msg'] = None
+            dataRaw = json.dumps(self.heartbeatPackage)
+            dataByte = dataRaw.encode('utf-8')
+            self.socket.sendto(dataByte, self.targetAddress)
+            if self.useServo:
+                compassAngle = self.compass.readAngle()
+                compassError = compassAngle - self.lastCompassAngle
+                self.logger.debug('Compass Fix: %f' % compassError)
+                if self.servo.angle + compassError\
+                        > self.servo.maxAngle:
+                    compassError -= 180
+                elif self.servo.angle + compassError < 0:
+                    compassError += 180
+                self.logger.debug('Compass post fix: %f.'
+                                  % compassError)
+                self.logger.debug('Compass servo fix: %f -> %f'
+                                  % (self.servo.angle,
+                                     self.servo.angle + compassError))
+                self.lastCompassAngle = self.compass.readAngle()
+                self.logger.debug('Compass angle: %f' % self.lastCompassAngle)
+                self.nextLocateTime = time.time() + abs(compassError) * 0.008
+                self.servo.setAngle(self.servo.angle + compassError)
+        return markedImg
+
+    def run(self):    # {{{
+        self.logger.info('Main thread running.')
         # Test camera {{{
         self.logger.info('Setting camera parameter: %s' %
                          ('Success' if
@@ -127,138 +259,36 @@ class Locator():    # {{{
                            self.cam['dev'].set(cv2.CAP_PROP_EXPOSURE,
                                                0.03))
                           else 'Failed'))
-        for i in range(3):
-            read, img = self.cam['dev'].read()
-            self.logger.info('Attempt to read image from camera at ' +
-                             ('%s tries: %s') %
-                             (i + 1, 'Success' if read else 'Failed'))
-            if read:
-                break
-            else:
-                if i == 2:
-                    self.logger.critical('Camera is not available.')
-        # }}}
-
-        self.tvec, self.rvec = None, None
-        self.logger.info('Locator initiation done, start main thread.')
-        self.showImg = showImg
-        if showImg:
-            cv2.namedWindow('raw')
-        if useServo:
-            def compassUpdater():
-                self.lastCompassAngle = self.compass.readAngle()
-            self.compassReader = threading.Thread(target=compassUpdater)
-            self.compassReader.start()
-        pass    # }}}
-
-    def run(self):    # {{{
-        self.logger.info('Main thread running.')
         while True:
+            if self.setCalib is not None:
+                if self.setCalib.value != 0:
+                    self.logger.warning('isCalib: %s' % str(self.setCalib.value))
+                    self.logger.debug('Start Cali, please wait')
+                    self.compass.cali(True)
+                    self.setCalib.value = 0
+                pass
+
             self.logger.debug('=====================================')
             last = time.time()
-            self.logger.debug('Exposure: %f' % self.cam['dev'].get(cv2.CAP_PROP_EXPOSURE))
+            self.logger.debug('Exposure: %f'
+                              % self.cam['dev'].get(cv2.CAP_PROP_EXPOSURE))
             # if self.useServo:
             #     self.lastCompassAngle = self.compass.readAngle()
 
             buffCount = 0
-            self.logger.warning('Clear start: @ %f' % (time.time() - last))
+            self.logger.debug('Clear start: @ %f' % (time.time() - last))
             for i in range(4):
                 self.cam['dev'].grab()
-                self.logger.warning('Buff count: %d @ %f' % (buffCount, time.time() - last))
+                # self.logger.warning('Buff count: %d @ %f'
+                #                     % (buffCount, time.time() - last))
             read, img = self.cam['dev'].read()
             if read:    # {{{
-                tvec, rvec, code = self.__locator(img)
-
-                if tvec is not None or rvec is not None:    # {{{
-                    loc = {'X': round(tvec[0], 5),
-                           'Y': round(tvec[1], 5),
-                           'Z': round(tvec[2], 5)}
-                    ang = round(rvec)
-                    self.logger.debug('Calculated done, loc=%s, angle=%d.'
-                                      % (str(loc), ang))
-
-                    # if self.tvec is not None:
-                    #     dis = ((tvec[0] - self.tvec[0]) ** 2 +
-                    #            (tvec[1] - self.tvec[1]) ** 2)
-                    #     self.logger.debug('Distance: %f', dis)
-                    #     if dis > 0.2 ** 2:
-                    #         continue
-
-                    if self.useServo:    # {{{
-                        thresh = 2
-                        error = 0
-                        if ang < 90 and ang - 0 > thresh:
-                            error = -ang
-                            pass
-                        elif ang < 270 and abs(ang - 180) > thresh:
-                            error = 180 - ang
-                            pass
-                        elif ang > 270 and 360 - ang > thresh:
-                            error = 360 - ang
-
-                        self.logger.debug('Fix: ' + str(error))
-                        # Check servo angle.
-                        if self.servo.angle + error >\
-                                self.servo.maxAngle:
-                            error = error - 180
-                        elif self.servo.angle + error < 0:
-                            error = 180 + error
-                            ang -= 180
-
-                        self.logger.debug('Post Fix: '
-                                          + str(error))
-                        self.logger.debug('Servo: %d -> %d'
-                                          % (self.servo.angle,
-                                             self.servo.angle + error))
-                        self.servo.setAngle(self.servo.angle
-                                            + error)
-                        # time.sleep(error * 0.008)
-                        ang += self.servo.angle + error
-
-                    # }}}
-
-                    ang -= 35
-                    self.logger.debug('orientation: %d' % ang)
-                    self.heartbeatPackage['Msg'] = {'position': loc,
-                                                    'orientation': ang}
-                    self.tvec, self.rvec = tvec, rvec
-                    dataRaw = json.dumps(self.heartbeatPackage)
-                    dataByte = dataRaw.encode('utf-8')
-                    self.socket.sendto(dataByte, self.targetAddress)
-                    # self.logger.debug('Package: %s' % dataRaw)
-                    self.logger.debug('Locate: %s' % loc)
-                    # }}}
-                else:    # {{{
-                    self.logger.warning('Locate failed, no valid loc got, '
-                                        + 'last loc %s'
-                                        % str(self.tvec) +
-                                        ', last orien: %s'
-                                        % str(self.rvec))
-                    if self.useServo:
-                        compassAngle = self.compass.readAngle()
-                        compassError = compassAngle - self.lastCompassAngle
-                        self.logger.debug('Compass Fix: %f' % compassError)
-                        if self.servo.angle + compassError\
-                                > self.servo.maxAngle:
-                            compassError -= 180
-                        elif self.servo.angle + compassError < 0:
-                            compassError += 180
-                        self.logger.debug('Compass post fix: %f.'
-                                          % compassError)
-                        self.logger.debug('Compass servo fix: %f -> %f'
-                                          % (self.servo.angle,
-                                             self.servo.angle + compassError))
-                        self.servo.setAngle(self.servo.angle + compassError)
-                        pass
-                # }}}
+                self.oneEpoch(img)
 
                 if self.showImg:
                     cv2.imshow('raw', cv2.resize(img,
                                                  (round(img.shape[1] / 2),
                                                   round(img.shape[0] / 2))))
-                    if code == 1:
-                        # cv2.waitKey(0)
-                        pass
                     key = cv2.waitKey(30)
                     if key == ord(' '):
                         key = cv2.waitKey(0)
@@ -451,41 +481,32 @@ class Locator():    # {{{
 
                 validContours.append(validResult)
 
-                if self.showImg:
-                    color = (round(random.randrange(100, 255)),
-                             round(random.randrange(100, 255)),
-                             round(random.randrange(100, 255)))
-                    img = cv2.drawContours(img,
-                                           contours,
-                                           i,
-                                           color,
-                                           2,
-                                           cv2.LINE_AA)
+                color = (round(random.randrange(100, 255)),
+                         round(random.randrange(100, 255)),
+                         round(random.randrange(100, 255)))
+                img = cv2.drawContours(img,
+                                       contours,
+                                       i,
+                                       color,
+                                       2,
+                                       cv2.LINE_AA)
             except ZeroDivisionError:
                 continue
 
-        if not self.showImg:
-            return validContours
-        else:
-            img = cv2.putText(img,
-                              '%d / %d' % (len(validContours), len(contours)),
-                              (0, round(img.shape[0] / 2)),
-                              cv2.FONT_HERSHEY_SIMPLEX,
-                              5,
-                              (0, 0, 255))
-            return validContours, binaryImg, img
+        img = cv2.putText(img,
+                          '%d / %d' % (len(validContours), len(contours)),
+                          (0, round(img.shape[0] / 2)),
+                          cv2.FONT_HERSHEY_SIMPLEX,
+                          5,
+                          (0, 0, 255))
+        return validContours, binaryImg, img
         pass    # }}}
 
     def __locator(self, image):    # {{{
         loc = None
         rot = None
         code = 0
-        tmpStamp = time.time()
-        if not self.showImg:
-            validContours = self.__detectMarker(image)
-        else:
-            validContours, binaryImg, image = self.__detectMarker(image)
-        self.logger.debug('__detectMarker: %s' % (time.time() - tmpStamp))
+        validContours, binaryImg, image = self.__detectMarker(image)
 
         calcImg = numpy.zeros([image.shape[0], image.shape[1], 3],
                               numpy.float32)
@@ -501,21 +522,6 @@ class Locator():    # {{{
 
             # Remove marker {{{
             encCircle = cv2.minEnclosingCircle(centriodsArray)
-
-            # epsilon = 0.01
-            # approximatedContours = cv2.approxPolyDP(centriodsArray,
-            #                                         epsilon,
-            #                                         closed=True)
-            # while not len(approximatedContours) == 4:    # {{{
-            #     epsilon = epsilon + 0.01
-            #     approximatedContours = cv2.approxPolyDP(centriodsArray,
-            #                                             epsilon,
-            #                                             closed=True)
-            #     if epsilon > 100:
-            #         self.logger.debug('Approx failed.')
-            #         return loc, rot
-            #     # }}}
-            # self.logger.debug('Epsilon: %f', epsilon)
             avgDis = list()
             marker = [0, 0]
             # for c in centriodsArray:
@@ -523,9 +529,6 @@ class Locator():    # {{{
             #         avgDis.append(c)
             #     else:
             #         marker = c
-            tmpStamp = time.time()
-            jm = self.__findLabel(centriodsArray)
-            self.logger.debug('__findLabel: %s' % (time.time() - tmpStamp))
             jm = self.__findLabel(centriodsArray)
             marker = centriods[jm]
             avgDis = centriods
@@ -622,6 +625,19 @@ class Locator():    # {{{
                 rot += 360
             rot = 360 - rot
             # }}}
+            markedImg = cv2.putText(markedImg, str(loc), (0, 100),
+                                    cv2.FONT_HERSHEY_COMPLEX_SMALL, 2,
+                                    (150, 50, 150))
+
+            markedImg = cv2.putText(markedImg, str(round(angZ)), (0, 150),
+                                    cv2.FONT_HERSHEY_COMPLEX_SMALL, 2,
+                                    (50, 50, 0))
+            markedImg = cv2.aruco.drawAxis(markedImg,
+                                           self.cam['inst'],
+                                           self.cam['dist'],
+                                           rvec,
+                                           tvec,
+                                           300)
 
             # Draw {{{
             if self.showImg:
@@ -668,19 +684,6 @@ class Locator():    # {{{
                                       round(encCircle[0][1])),
                                      round(encCircle[1]),
                                      (100, 0, 200), 1)
-                markedImg = cv2.putText(markedImg, str(loc), (0, 100),
-                                        cv2.FONT_HERSHEY_COMPLEX_SMALL, 2,
-                                        (150, 50, 150))
-
-                markedImg = cv2.putText(markedImg, str(round(angZ)), (0, 150),
-                                        cv2.FONT_HERSHEY_COMPLEX_SMALL, 2,
-                                        (50, 50, 0))
-                markedImg = cv2.aruco.drawAxis(markedImg,
-                                               self.cam['inst'],
-                                               self.cam['dist'],
-                                               rvec,
-                                               tvec,
-                                               300)
                 cv2.imshow('calc', cv2.resize(calcImg,
                                               (round(calcImg.shape[1] / 2),
                                                round(calcImg.shape[0] / 2))))
@@ -702,48 +705,5 @@ class Locator():    # {{{
                                                round(binaryImg.shape[0] / 2))))
             code = 1
 
-        return loc, rot, code    # }}}
+        return loc, rot, code, markedImg    # }}}
 # }}}
-
-
-benchmark = False
-release = False
-lens = 0
-useServo = False
-showImg = False
-
-opts, args = getopt.getopt(sys.argv[1:], 'hbl:dsw')
-for key, val in opts:
-    if key == '-h':
-        print('Usage: run [-h] [-b] [-l len] [-d] [-w]')
-        print('-h: Show this help.')
-        print('-b: Run benchmark, print fps only.')
-        print('-l len: Select len, can be 0 or 1.')
-        print('-d: Run under debug mode.')
-        sys.exit(0)
-    if key == '-b':
-        benchmark = True
-    if key == '-l':
-        if val == '0':
-            pass
-        elif val == '1':
-            pass
-        else:
-            pass
-    if key == '-d':
-        release = False
-    if key == '-s':
-        useServo = True
-    if key == '-w':
-        showImg = True
-
-if useServo:
-    import pca
-    import servo
-    import qmc
-lctr = Locator(benchmark=benchmark,
-               lens=lens,
-               release=release,
-               useServo=useServo,
-               showImg=showImg)
-lctr.run()

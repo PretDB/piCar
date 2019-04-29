@@ -91,12 +91,12 @@ class QMC:
         y = list()
         z = list()
 
-        for i in range(2000):
+        for i in range(4000):
             xx, yy, zz = self.readMag()
             x.append(xx)
             y.append(yy)
             z.append(zz)
-            time.sleep(0.005)
+            time.sleep(0.01)
 
         xmax = max(x)
         ymax = max(y)
@@ -120,6 +120,7 @@ class QMC:
             f.write(str(xgain) + '\n')
             f.write(str(ygain) + '\n')
             f.write(str(zgain) + '\n')
+            f.flush()
             f.close()
 
         self.xoff = xoff
