@@ -49,11 +49,11 @@ class QMC:
 
     def readMag_Raw(self):
         dataRaw = [0, 0, 0, 0, 0, 0]
-        ready_raw = self.readReg(0x06)
 
-        if ready_raw & 0x01 == 0x01:
-            for i in range(6):
-                dataRaw[i] = self.readReg(i)
+        while self.readReg(0x06) & 0x01 != 0x01:
+            time.sleep(0.01)
+        for i in range(6):
+            dataRaw[i] = self.readReg(i)
 
         return dataRaw
 
