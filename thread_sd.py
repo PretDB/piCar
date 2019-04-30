@@ -10,6 +10,23 @@ class SDFunc():    # {{{
             self.wiringpi = wiringpi
             self.wiringpi.wiringPiSetup()
             self.wiringpi.pinMode(25, wiringpi.INPUT)
+
+            def trig():
+                c = Command(self.com.value)
+                if c != Command.SoundDetect:
+                    return
+                if self.wiringpi is not None:
+                    # Disable interrupt
+                    self.car.move(Command.RightRotate)
+                    time.sleep(3)
+                    self.car.move(Command.Stop)
+                    # Enable interrupt
+                    time.sleep(0.5)
+                return
+
+            self.wiringpi.wiringPiISR(25,
+                                      self.wiringpi.INT_EDGE_FALLING,
+                                      trig)
         else:
             self.wiringpi = None
 
@@ -22,40 +39,10 @@ class SDFunc():    # {{{
 
     # Run, main thread loop {{{
     def run(self):
-        def trig():
-            if self.wiringpi is not None:
-                # Disable interrupt
-                self.wiringpi.wiringPiISR(25, self.wiringpi.INT_EDGE_FALLING,
-                                          untrig)
-                self.car.move(Command.RightRotate)
-                time.sleep(3)
-                self.car.move(Command.Stop)
-                # Enable interrupt
-                time.sleep(0.5)
-                self.wiringpi.wiringPiISR(25, self.wiringpi.INT_EDGE_FALLING,
-                                          trig)
-            return
-
-        def untrig():
-            return
-
         while True:
             time.sleep(0.3)
             c = Command(self.com.value)
-            if c == Command.SoundDetect:
-                if (not self.hooked) and (self.wiringpi is not None):
-                    self.wiringpi.wiringPiISR(25,
-                                              self.wiringpi.INT_EDGE_FALLING,
-                                              trig)
-                    self.hooked = True
-                else:
-                    pass
-            else:
-                if self.wiringpi is not None:
-                    self.wiringpi.wiringPiISR(25,
-                                              self.wiringpi.INT_EDGE_FALLING,
-                                              untrig)
-                self.hooked = False
+            if c != Command.SoundDetect:
                 self.car.move(Command.Stop)
                 break
         return
