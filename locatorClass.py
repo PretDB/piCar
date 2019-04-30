@@ -61,7 +61,7 @@ class Locator():    # {{{
         self.logger.setLevel(logging.NOTSET)
 
         termFormatter = logging.Formatter('%(asctime)s '
-                                          + '%(levelname)-10s %(message)s')
+                                          + '\033[32m%(levelname)-10s\033[0m %(message)s')
         fileFormatter = logging.Formatter('[%(asctime)s] ' +
                                           '%(filename)s:%(lineno)-4d ' +
                                           '[%(levelname)s] ' +
@@ -138,11 +138,6 @@ class Locator():    # {{{
         self.setCalib = setCalib
         if showImg:
             cv2.namedWindow('raw')
-        if useServo:
-            # def compassUpdater():
-            #     self.lastCompassAngle = self.compass.readAngle()
-            # self.compassReader = threading.Thread(target=compassUpdater)
-            # self.compassReader.start()
             pass
         pass    # }}}
 
@@ -189,10 +184,9 @@ class Locator():    # {{{
                     error = error - 180
                 elif self.servo.angle + error < 0:
                     error = 180 + error
-                    ang -= 180
+                    # ang -= 180
 
-                self.logger.debug('Post Fix: '
-                                  + str(error))
+                self.logger.debug('\033[32mPost Fix: %f.\033[0m' % (error))
                 self.logger.debug('Servo: %d -> %d'
                                   % (self.servo.angle,
                                      self.servo.angle + error))
@@ -205,12 +199,17 @@ class Locator():    # {{{
             # }}}
 
             ang -= 35
-            self.logger.debug('orientation: %d' % ang)
+            if ang < 0:
+                ang += 360
+            while ang > 360:
+                ang -= 360
+            self.logger.debug('\033[41morientation: %d\033[0m' % ang)
             self.heartbeatPackage['Msg'] = {'position': loc,
                                             'orientation': ang}
             self.tvec, self.rvec = tvec, rvec
             dataRaw = json.dumps(self.heartbeatPackage)
             dataByte = dataRaw.encode('utf-8')
+            self.logger.debug(dataByte)
             self.socket.sendto(dataByte, self.targetAddress)
             # self.logger.debug('Package: %s' % dataRaw)
             self.logger.debug('Locate: %s' % loc)
@@ -224,6 +223,7 @@ class Locator():    # {{{
             self.heartbeatPackage['Msg'] = None
             dataRaw = json.dumps(self.heartbeatPackage)
             dataByte = dataRaw.encode('utf-8')
+            self.logger.debug(dataByte)
             self.socket.sendto(dataByte, self.targetAddress)
             if self.useServo:
                 compassAngle = self.compass.readAngle()
@@ -234,15 +234,16 @@ class Locator():    # {{{
                     compassError -= 180
                 elif self.servo.angle + compassError < 0:
                     compassError += 180
-                self.logger.debug('Compass post fix: %f.'
+                self.logger.debug('\033[32mCompass post fix: %f.\033[0m'
                                   % compassError)
                 self.logger.debug('Compass servo fix: %f -> %f'
                                   % (self.servo.angle,
                                      self.servo.angle + compassError))
-                self.lastCompassAngle = self.compass.readAngle()
-                self.logger.debug('Compass angle: %f' % self.lastCompassAngle)
+                self.logger.debug('Compass angle: %f' % compassAngle)
                 self.nextLocateTime = time.time() + abs(compassError) * 0.008
                 self.servo.setAngle(self.servo.angle + compassError)
+            self.logger.debug('%s' % json.dumps(self.heartbeatPackage))
+        self.lastCompassAngle = self.compass.readAngle()
         return markedImg
 
     def run(self):    # {{{
@@ -617,8 +618,8 @@ class Locator():    # {{{
                         round(c2wTVec[0][2], 2))
             loc = printLoc
             rot = angZ
-            loc = (round((-loc[0] / 1000.0 + 3) / 6, 6),
-                   round((loc[1] / 1000.0 + 2) / 4, 6),
+            loc = (round(-loc[0] / 1000.0 + 3 , 6),
+                   round(loc[1] / 1000.0 + 2, 6),
                    round(loc[2] / 1000.0, 6))
 
             if rot < 0:
