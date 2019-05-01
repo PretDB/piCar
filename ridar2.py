@@ -9,7 +9,7 @@ from ctypes import CDLL, c_float, c_int, pointer
 class RidarFunc():    # {{{
     # Init {{{
     def __init__(self, car, com):
-        self.compass = qmc.QMC(False)
+        # self.compass = qmc.QMC(False)
         self.car = car
         self.com = com
         self.ridar = CDLL('/home/pi/piCar/ridar.so')
@@ -30,12 +30,12 @@ class RidarFunc():    # {{{
     def run(self):
         while True:
             c = Command(self.com.value)
-            if c == Command.Sonic or c == Command.IR:
+            if c == Command.Ridar:
                 self.capture()
                 self.preprocess()
                 cmd = self.postprocess()
                 for com, s in cmd:
-                    if c == Command.Sonic or c == Command.IR:
+                    if c == Command.Ridar:
                         self.car.move(com)
                         time.sleep(s)
                 pass
@@ -90,12 +90,12 @@ class RidarFunc():    # {{{
                 frontLeftDiss.remove(0.0)
             while frontRightDiss[0] == 0.0:
                 frontRightDiss.remove(0.0)
-            while leftDiss[0] < 200.0:
+            while leftDiss[0] == 0.0:
                 leftDiss.remove(0.0)
-            while rightDiss[0] < 200.0:
-                rightDiss.remove(0.0)
+            while rightDiss[0] <= 400.0:
+                rightDiss.remove(rightDiss[0])
         except:
-            return (Command.Forward, 0)
+            return [(Command.Forward, 0)]
 
         frontLeftDis = min(frontLeftDiss)
         frontRightDis = min(frontRightDiss)
@@ -103,11 +103,10 @@ class RidarFunc():    # {{{
         rightDis = min(rightDiss)
         print(frontLeftDis, frontRightDis, leftDis, rightDis)
 
-        if frontLeftDis < 600.0 or frontRightDis < 600.0 or leftDis < 600.0 or rightDis < 600.0:
+        if frontLeftDis < 800.0 or frontRightDis < 800.0 or leftDis < 800.0 or rightDis < 1400.0:
             self.avoidance()
             print('avoidance')
-        else:
-            c.append((Command.Forward, 0))
+        c.append((Command.Forward, 0))
         return c    # }}}
 
     # Read distance in mm {{{
@@ -151,25 +150,36 @@ class RidarFunc():    # {{{
         maxdisang = self.angles[i]
         print('maxdis = %f @ %f' % (maxdis, maxdisang))
 
-        anginit = self.compass.readAngle()
-        targetang = maxdisang + anginit
-        if targetang < 0:
-            targetang += 360.0
-        while targetang > 360.0:
-            targetang -= 360.0
+        # anginit = self.compass.readAngle()
+        # targetang = maxdisang + anginit
+        # if targetang < 0:
+        #     targetang += 360.0
+        # while targetang > 360.0:
+        #     targetang -= 360.0
         com = None
-        diff = abs(targetang - anginit)
-        print('start: %f, target: %f, diff: %f' % (anginit, targetang, diff))
-        if diff > 180: 
+        targetang = maxdisang
+        # diff = abs(targetang - anginit)
+        # print('start: %f, target: %f, diff: %f' % (anginit, targetang, diff))
+        targetTime = 0
+        if targetang > 180: 
             com = Command.LeftRotate
+            targetTime = (360 - targetang) * 15.0 / 360
         else:
             com = Command.RightRotate
-        print('Dir: %s' % str(com))
-        while Command(self.com.value) == Command.Sonic or Command(self.com.value) == Command.IR:
-            angc = self.compass.readAngle()
-            if abs(angc - targetang) > 5.0:
+            targetTime = targetang * 15.0 / 360
+        print('Dir: %s, time: %f' % (str(com), targetTime))
+        avoidStart = time.time()
+        print('Start @: %f' % avoidStart)
+        while Command(self.com.value) == Command.Ridar:
+            # angc = self.compass.readAngle()
+            # print('Ang: %f' % angc)
+            # if abs(angc - targetang) > 5.0:
+            #     self.car.move(com)
+            if time.time() - avoidStart < targetTime:
                 self.car.move(com)
+                time.sleep(0.1)
             else:
                 self.car.move(Command.Stop)
-                return
+                print('End @: %f' % time.time())
+                break
 # }}}
