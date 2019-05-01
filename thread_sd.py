@@ -21,7 +21,7 @@ class SDFunc():    # {{{
                     time.sleep(3)
                     self.car.move(Command.Stop)
                     # Enable interrupt
-                    time.sleep(0.5)
+                    time.sleep(2.5)
                 return
 
             self.wiringpi.wiringPiISR(25,
