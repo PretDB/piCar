@@ -39,7 +39,10 @@ for key, val in opts:
 
 isDebug = Value('I', 0)
 setCalib = Value('I', 0)
-server = locatorServer.server(isDebug=isDebug, setCalib=setCalib)
+buffNum = Value('I', 1)
+server = locatorServer.server(isDebug=isDebug,
+                              setCalib=setCalib,
+                              buffNum=buffNum)
 server.daemon = True
 server.start()
 
@@ -49,5 +52,6 @@ lctr = locatorClass.Locator(benchmark=benchmark,
                        useServo=useServo,
                        showImg=showImg,
                        isDebug=isDebug,
-                       setCalib=setCalib)
+                       setCalib=setCalib,
+                       buffNum=buffNum)
 lctr.run()

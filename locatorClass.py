@@ -11,6 +11,7 @@ import random
 import socket
 import json
 import threading
+import qmc
 
 
 class Locator():    # {{{
@@ -20,7 +21,8 @@ class Locator():    # {{{
                  useServo=False,
                  showImg=False,
                  setCalib=None,
-                 isDebug=None):    # {{{
+                 isDebug=None,
+                 buffNum=None):    # {{{
         # Initiate network {{{
         self.targetAddress = ('<broadcast>', 6868)
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -38,7 +40,6 @@ class Locator():    # {{{
         if useServo:
             import pca
             import servo
-            import qmc
             pwm = pca.PCA()
             self.servo = servo.Servo(pwm, 4, maxAngle=270)
             self.servo.setAngle(self.servo.maxAngle / 2)
@@ -46,9 +47,8 @@ class Locator():    # {{{
         # }}}
 
         # Compass initiation if needed. {{{
-        if useServo:
-            self.compass = qmc.QMC(True)
-            self.lastCompassAngle = self.compass.readAngle()
+        self.compass = qmc.QMC(True)
+        self.lastCompassAngle = self.compass.readAngle()
         # }}}
 
         # Initiate hearbeat package {{{
@@ -136,6 +136,7 @@ class Locator():    # {{{
         self.logger.info('Locator initiation done, start main thread.')
         self.showImg = showImg
         self.setCalib = setCalib
+        self.buffNum = buffNum
         if showImg:
             cv2.namedWindow('raw')
             pass
@@ -144,6 +145,7 @@ class Locator():    # {{{
     def oneEpoch(self, img):
         self.logger.debug('============== Epoch =============')
         tvec, rvec, code, markedImg = self.__locator(img)
+        markedImg = cv2.resize(markedImg, (480, 640))
         if time.time() - self.lastLocateTime < 0.5:
             return markedImg
         if time.time() < self.nextLocateTime:
@@ -285,7 +287,13 @@ class Locator():    # {{{
                 #                     % (buffCount, time.time() - last))
             read, img = self.cam['dev'].read()
             if read:    # {{{
-                self.oneEpoch(img)
+                mark = self.oneEpoch(img)
+                if self.buffNum.value == 1:
+                    cv2.imwrite('/var/locator/2.jpg', mark)
+                    self.buffNum.value = 2
+                else:
+                    cv2.imwrite('/var/locator/1.jpg', mark)
+                    self.buffNum.value = 1
 
                 if self.showImg:
                     cv2.imshow('raw', cv2.resize(img,
@@ -386,7 +394,7 @@ class Locator():    # {{{
         # Filter by convexity.
         hull = cv2.convexHull(contour)
         convexity = area / cv2.contourArea(hull)
-        if convexity < 0.9:
+        if convexity < 0.8:
             if self.showImg:
                 img = cv2.putText(img,
                                   'convexity: %f' % convexity,
@@ -483,24 +491,23 @@ class Locator():    # {{{
 
                 validContours.append(validResult)
 
-                color = (round(random.randrange(100, 255)),
-                         round(random.randrange(100, 255)),
-                         round(random.randrange(100, 255)))
+                color = (0, 0, 255)
                 img = cv2.drawContours(img,
                                        contours,
                                        i,
                                        color,
-                                       2,
+                                       3,
                                        cv2.LINE_AA)
             except ZeroDivisionError:
                 continue
 
         img = cv2.putText(img,
-                          '%d / %d' % (len(validContours), len(contours)),
+                          '%d' % (len(validContours)),
                           (0, round(img.shape[0] / 2)),
-                          cv2.FONT_HERSHEY_SIMPLEX,
+                          cv2.FONT_HERSHEY_COMPLEX,
                           5,
-                          (0, 0, 255))
+                          (0, 0, 255),
+                          thickness=3)
         return validContours, binaryImg, img
         pass    # }}}
 
@@ -627,19 +634,19 @@ class Locator():    # {{{
                 rot += 360
             rot = 360 - rot
             # }}}
-            markedImg = cv2.putText(markedImg, str(loc), (0, 100),
-                                    cv2.FONT_HERSHEY_COMPLEX_SMALL, 2,
-                                    (150, 50, 150))
+            # markedImg = cv2.putText(markedImg, str(loc), (0, 100),
+            #                         cv2.FONT_HERSHEY_COMPLEX_SMALL, 2,
+            #                         (150, 50, 150))
 
-            markedImg = cv2.putText(markedImg, str(round(angZ)), (0, 150),
-                                    cv2.FONT_HERSHEY_COMPLEX_SMALL, 2,
-                                    (50, 50, 0))
-            markedImg = cv2.aruco.drawAxis(markedImg,
-                                           self.cam['inst'],
-                                           self.cam['dist'],
-                                           rvec,
-                                           tvec,
-                                           300)
+            # markedImg = cv2.putText(markedImg, str(round(angZ)), (0, 150),
+            #                         cv2.FONT_HERSHEY_COMPLEX_SMALL, 2,
+            #                         (50, 50, 0))
+            # markedImg = cv2.aruco.drawAxis(markedImg,
+            #                                self.cam['inst'],
+            #                                self.cam['dist'],
+            #                                rvec,
+            #                                tvec,
+            #                                300)
 
             # Draw {{{
             if self.showImg:
