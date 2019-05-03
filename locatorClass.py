@@ -491,15 +491,26 @@ class Locator():    # {{{
 
                 validContours.append(validResult)
 
-                color = (0, 0, 255)
-                img = cv2.drawContours(img,
-                                       contours,
-                                       i,
-                                       color,
-                                       3,
-                                       cv2.LINE_AA)
             except ZeroDivisionError:
                 continue
+
+        color = (0, 0, 255)
+        drawC = list()
+        validContours.sort(key=(lambda x: x['mass']), reverse=True)
+        if len(validContours) >= 6:
+            for i in range(6):
+                drawC.append(validContours[i]['contour'])
+        else:
+            for i in range(len(validContours)):
+                drawC.append(validContours[i]['contour'])
+
+        for i in range(len(drawC)):
+            img = cv2.drawContours(img,
+                                   drawC,
+                                   i,
+                                   color,
+                                   3,
+                                   cv2.LINE_AA)
 
         img = cv2.putText(img,
                           '%d' % (len(validContours)),
