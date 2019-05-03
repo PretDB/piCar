@@ -52,9 +52,9 @@ class server(mp.Process):
             if request.method == 'POST':
                 incomming = request.get_json()
                 SetCommand(incomming)
-                return 'com: ' + str(command.Command(self.com.value)) + '\tspeed: ' + str(self.speed.value) + '\tfire: ' + str(bool(self.fire.value))
+                return str(self.isDebug.value)
             elif request.method == 'GET':
-                return 'com: ' + str(command.Command(self.com.value)) + '\tspeed: ' + str(self.speed.value) + '\tfire: ' + str(bool(self.fire.value))
+                return str(self.isDebug.value)
 
         def SetCommand(inCommingJson):
             if inCommingJson['Type'] == 'instruction':

@@ -136,6 +136,7 @@ class Locator():    # {{{
         self.logger.info('Locator initiation done, start main thread.')
         self.showImg = showImg
         self.setCalib = setCalib
+        self.isDebug = isDebug
         self.buffNum = buffNum
         if showImg:
             cv2.namedWindow('raw')
@@ -167,7 +168,7 @@ class Locator():    # {{{
             #     if dis > 0.2 ** 2:
             #         continue
 
-            if self.useServo:    # {{{
+            if self.useServo and (self.isDebug.value != 1):    # {{{
                 thresh = 2
                 error = 0
                 if ang < 90 and ang - 0 > thresh:
@@ -228,7 +229,7 @@ class Locator():    # {{{
             dataByte = dataRaw.encode('utf-8')
             self.logger.debug(dataByte)
             self.socket.sendto(dataByte, self.targetAddress)
-            if self.useServo:
+            if self.useServo and (self.isDebug.value != 1):
                 compassAngle = self.compass.readAngle()
                 compassError = compassAngle - self.lastCompassAngle
                 self.logger.debug('Compass Fix: %f' % compassError)
@@ -273,6 +274,8 @@ class Locator():    # {{{
                 pass
 
             self.logger.debug('=====================================')
+            if self.isDebug.value == 1:
+                self.servo.setAngle(self.servo.maxAngle / 2)
             last = time.time()
             self.logger.debug('Exposure: %f'
                               % self.cam['dev'].get(cv2.CAP_PROP_EXPOSURE))
@@ -434,9 +437,9 @@ class Locator():    # {{{
         moment = cv2.moments(contour, True)
         center = (moment['m10'] / moment['m00'],
                   moment['m01'] / moment['m00'])
-        rate = 0.1
+        rate = 0.05
         # Filter by center posiion.
-        if center[0] < imgSize[0] * rate or center[0] > imgSize[0] * 0.9:
+        if center[0] < imgSize[0] * rate or center[0] > imgSize[0] * (1 - rate):
             if self.showImg:
                 img = cv2.putText(img,
                                   'center: %s' % str(center),
